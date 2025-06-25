@@ -1,0 +1,27 @@
+{
+    "common": {
+        "app_title": "Chill Games"
+    },
+    "games": {
+        "battleship": "Hải chiến",
+        "tictactoe": "Cờ caro"
+    },
+    "HomePage": {
+        "title": "Chào mừng đến với"
+    },
+    "LocaleSwitcher": {
+        "vi": "🇻🇳 Tiếng Việt",
+        "en": "🇺🇸 English",
+        "vi_icon": "🇻🇳",
+        "en_icon": "🇺🇸",
+        "label": "Ngôn ngữ"
+    },
+    "ThemeToggle": {
+        "change_theme": "Đổi giao diện"
+    },
+    "NotFoundPage": {
+        "title": "Không tìm thấy trang",
+        "description": "Trang bạn đang tìm kiếm không tồn tại.",
+        "goHome": "Trở về Trang chủ"
+    }
+}

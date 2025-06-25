@@ -1,0 +1,27 @@
+{
+    "common": {
+        "app_title": "Chill Games"
+    },
+    "games": {
+        "battleship": "Battleship",
+        "tictactoe": "Tic Tac Toe"
+    },
+    "HomePage": {
+        "title": "Welcome to"
+    },
+  "LocaleSwitcher": {
+    "vi": "🇻🇳 Vietnamese",
+    "en": "🇺🇸 English",
+    "vi_icon": "🇻🇳",
+    "en_icon": "🇺🇸",
+    "label": "Language"
+  },
+  "ThemeToggle": {
+    "change_theme": "Change Theme"
+  },
+  "NotFoundPage": {
+    "title": "Page Not Found",
+    "description": "The page you are looking for does not exist.",
+    "goHome": "Go back to Home"
+  }
+}
