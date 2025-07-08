@@ -4,11 +4,18 @@ import Pannel from '@/components/Pannel'
 import HomeLayout from '@/layouts/default'
 import { GameCardModel } from '@/models'
 import GameList from '@/partials/home/game-list'
+import { useSocketStore } from '@/stores/socketStore'
 import { useLocale, useTranslations } from 'next-intl'
 
 export default function HomePage() {
   const t = useTranslations()
   const locale = useLocale()
+  const { connect, getSocket } = useSocketStore()
+
+  // Connect to the socket for the home namespace
+  if (!getSocket('user')) {
+    connect('user')
+  }
 
   const games = [
     {
