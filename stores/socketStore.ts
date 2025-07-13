@@ -3,16 +3,19 @@ import { Socket } from "socket.io-client"
 import { create } from "zustand";
 
 type SocketStore = {
-    sockets : Partial<Record<string, Socket>>;
-    connect: (ns: string) => boolean;
-    getSocket: (ns: string) => Socket | null;
+    sockets : Partial<Record<string, {
+        player: number;
+        socket: Socket;
+    }>>;
+    connect: (ns: string, player: number) => boolean;
+    getSocket: (ns: string) => { player: number; socket: Socket } | null;
 }
 
 export const useSocketStore = create<SocketStore>((set, get) => {
     return {
         sockets: {},
 
-        connect: (ns: string) => {
+        connect: (ns: string, player: number) => {
             const existingSocket = get().sockets[ns];
             if (existingSocket) {
                 return false;
@@ -25,7 +28,10 @@ export const useSocketStore = create<SocketStore>((set, get) => {
             set((state) => ({
                 sockets: {
                     ...state.sockets,
-                    [ns]: socket,
+                    [ns]: {
+                        player,
+                        socket,
+                    },
                 },
             }));
             return true;

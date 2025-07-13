@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { playerCreateRoom } from "@/services/roomService";
 import { useSocketStore } from "@/stores/socketStore";
+import { useRoomStore } from "@/stores/roomStore";
+import { RoomModel, RoomPlayerModel } from "@/models";
 
 const GAME_ID = "battleship";
 
@@ -12,12 +14,13 @@ const BattleShipPage = () => {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const { connect, getSocket } = useSocketStore();
+    const { setRoom, setRoomId, setPlayerOne, setPlayerTwo, getMe } = useRoomStore();
 
     useEffect(() => {
         if (!getSocket(GAME_ID)) {
-            connect(GAME_ID);
+            connect(GAME_ID, getMe());
         }
-        const socket = getSocket(GAME_ID);
+        const socket = getSocket(GAME_ID)?.socket;
         if (!socket) {
             console.error("Socket connection failed");
             return;
@@ -33,17 +36,23 @@ const BattleShipPage = () => {
         setLoading(true);
         try {
             const userId = null;
+            // reset rooom
+            setRoomId(null);
+            setRoom(null);
+            setPlayerOne(null);
+            setPlayerTwo(null);
             const data = await playerCreateRoom(GAME_ID, playerName, userId);
-            const socket = getSocket(GAME_ID);
+            const socket = getSocket(GAME_ID)?.socket;
             if (!socket) {
                 alert("Socket connection failed");
                 return;
             }
 
             socket.on("room:joined", (payload) => {
-                console.log("Room joined event received:", payload);
                 if (payload?.room_id) {
-                    console.log("Joined room successfully:", payload);
+                    setRoom(data?.room as RoomModel);
+                    setPlayerOne(data as RoomPlayerModel);
+                    setRoomId(payload.room_id);
                     router.push(`/battleship/${payload.room_id}`);
                 }
             });
