@@ -12,9 +12,12 @@ import Lobby from '@/partials/battleship/lobby';
 import { getRoom, joinRoom } from '@/services/roomService';
 import { useRoomStore } from '@/stores/roomStore';
 import { useParams } from 'next/navigation';
+import { useBoardStore } from '@/stores/boardStore';
+import { createBattleShipBoard } from '@/services/battleshipService';
+import { BattleShipBoard } from '@/models';
 
 export default function BattleShipPage() {
-    const [phase, setPhase] = useState<'setup' | 'battle'>('setup');
+    const [phase, setPhase] = useState<'lobby' | 'setup' | 'battle'>('lobby');
     const [myBoard, setMyBoard] = useState<Square[][] | null>(null);
     const [myShips, setMyShips] = useState<Ship[] | null>(null);
     const [loading, setLoading] = useState(true);
@@ -24,7 +27,8 @@ export default function BattleShipPage() {
     const [playerName, setPlayerName] = useState("");
     
     const { connect, getSocket } = useSocketStore();
-    const { setRoom, setRoomId, setPlayerOne, setMe, setPlayerTwo, getPlayerOne, getMe } = useRoomStore();
+    const { setRoom, setRoomId, setPlayerOne, setMe, setPlayerTwo, getPlayerOne, getPlayerTwo, getMe, getRoom: getRoomStore } = useRoomStore();
+    const { getPlacedShips } = useBoardStore();
     const params = useParams();
     const roomId = params.room as string;
 
@@ -39,6 +43,7 @@ export default function BattleShipPage() {
             return;
         }
         socket.emit('room:join', { roomId: "user:test" });
+        socket.emit('room:join', { roomId: roomId });
         socket.on('user:disconnected', (payload) => {
             console.log('User disconnected:', payload);
         });
@@ -49,7 +54,6 @@ export default function BattleShipPage() {
     useEffect(() => {
         const checkRoom = async () => {
             if (!roomId) return;
-            
             try {
                 setLoading(true);
                 setRoomNotFound(false); // Reset error state
@@ -62,6 +66,12 @@ export default function BattleShipPage() {
                 console.log('Room data:', roomData);
                 
                 if (roomData.room.id) {
+                    if (roomData.room.status === "lobby") {
+                        setPhase("lobby");
+                    } else if (roomData.room.status === "setup") {
+                        setPhase("setup");
+                    }
+
                     const playerCount = roomData.players.length;
                     if (playerCount >= 2) {
                         setPlayerOne(roomData.players[0]);
@@ -133,6 +143,16 @@ export default function BattleShipPage() {
                 setShowNameModal(false);
             }
         })
+    };
+
+    const handleStartGame = (player: number) => {
+        const payload = {
+            room_id: getRoomStore()?.id || "",
+            player_id: player === 1 ? getPlayerOne()?.player_id : getPlayerTwo()?.player_id,
+            ships: getPlacedShips(),
+            shots: [] // Initialize with empty shots
+        } as BattleShipBoard;
+        createBattleShipBoard(payload);
     };
 
     if (loading) {
@@ -210,19 +230,21 @@ export default function BattleShipPage() {
                 </div>
             )}
 
-            {/* {phase === 'setup' && (
+            {phase === 'lobby' && <Lobby />}
+            {phase === 'setup' && (
                 <ShipBoard
-                    onStart={(board: Square[][], ships: Ship[]) => {
+                    onStart={(board: Square[][], ships: Ship[], callback?: Function) => {
                         setMyBoard(board);
                         setMyShips(ships);
-                        setPhase('battle');
+                        handleStartGame(getMe());
+                        callback && callback();
                     }}
+                    setPhase={setPhase}
                 />
             )}
             {phase === 'battle' && myBoard && myShips && (
                 <BattleBoard myBoardInit={myBoard} myShipsInit={myShips} />
-            )} */}
-            <Lobby />
+            )}
         </HomeLayout>
     );
 }

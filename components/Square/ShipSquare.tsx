@@ -42,7 +42,6 @@ const ShipSquare = ({ square, position, onClick, onHover, size = 'md' }: ShipSqu
     };
 
     const getShipImagePath = (id: number, index: number) => {
-        console.log(`Loading ship image for ID: ${id}, Index: ${index}`);
         return `/assets/images/ship${id}/ship${id}_${index}.png`;
     };
 

@@ -14,9 +14,14 @@ const BattleShipPage = () => {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
     const { connect, getSocket } = useSocketStore();
-    const { setRoom, setRoomId, setPlayerOne, setPlayerTwo, getMe } = useRoomStore();
+    const { setRoom, setRoomId, setPlayerOne, setPlayerTwo, getMe, setMe } = useRoomStore();
 
     useEffect(() => {
+        setRoom(null);
+        setRoomId(null);
+        setPlayerOne(null);
+        setPlayerTwo(null);
+        setMe(0);
         if (!getSocket(GAME_ID)) {
             connect(GAME_ID, getMe());
         }
@@ -53,6 +58,7 @@ const BattleShipPage = () => {
                     setRoom(data?.room as RoomModel);
                     setPlayerOne(data as RoomPlayerModel);
                     setRoomId(payload.room_id);
+                    setMe(1);
                     router.push(`/battleship/${payload.room_id}`);
                 }
             });

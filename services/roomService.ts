@@ -30,3 +30,8 @@ export async function updateRoomPlayer(roomId: string, playerId: string, payload
     })
     return result.data;
 }
+
+export async function kickRoomPlayer(roomId: string, playerId: string): Promise<any> {
+    const result = await axios.delete<any>(`${process.env.NEXT_PUBLIC_BASE_API_URL}/room/${roomId}/players/${playerId}`);
+    return result.data;
+}

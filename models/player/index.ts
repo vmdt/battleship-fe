@@ -12,5 +12,12 @@ export interface RoomPlayerModel {
     is_host: boolean;
     room_id: string;
     player_id: string;
+    status: RoomPlayerStatus;
     player: PlayerModel;
+}
+
+export enum RoomPlayerStatus {
+    IN_LOBBY = 0,
+    PLACING = 1,
+    READY_TO_BATTLE = 2,
 }
