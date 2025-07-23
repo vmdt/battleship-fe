@@ -15,6 +15,7 @@ import { useParams } from 'next/navigation';
 import { useBoardStore } from '@/stores/boardStore';
 import { createBattleShipBoard } from '@/services/battleshipService';
 import { BattleShipBoard } from '@/models';
+import { getBattleShipBoard } from '@/services/battleshipService';
 
 export default function BattleShipPage() {
     const [phase, setPhase] = useState<'lobby' | 'setup' | 'battle'>('lobby');
@@ -25,6 +26,8 @@ export default function BattleShipPage() {
     const [roomFull, setRoomFull] = useState(false);
     const [roomNotFound, setRoomNotFound] = useState(false);
     const [playerName, setPlayerName] = useState("");
+    const [battleBoardData, setBattleBoardData] = useState<BattleShipBoard | null>(null);
+    const [battleLoading, setBattleLoading] = useState(false);
     
     const { connect, getSocket } = useSocketStore();
     const { setRoom, setRoomId, setPlayerOne, setMe, setPlayerTwo, getPlayerOne, getPlayerTwo, getMe, getRoom: getRoomStore } = useRoomStore();
@@ -70,6 +73,8 @@ export default function BattleShipPage() {
                         setPhase("lobby");
                     } else if (roomData.room.status === "setup") {
                         setPhase("setup");
+                    } else if (roomData.room.status === "battle") {
+                        setPhase("battle");
                     }
 
                     const playerCount = roomData.players.length;
@@ -127,6 +132,27 @@ export default function BattleShipPage() {
 
         checkRoom();
     }, [roomId, setRoom, setRoomId, setPlayerOne, setPlayerTwo, getMe, getPlayerOne]);
+
+    useEffect(() => {
+        if (phase === 'battle') {
+            const fetchBoard = async () => {
+                setBattleLoading(true);
+                try {
+                    const room = getRoomStore();
+                    const player = getMe();
+                    let playerId = player === 1 ? getPlayerOne()?.player_id : getPlayerTwo()?.player_id;
+                    if (!room?.id || !playerId) return;
+                    const data = await getBattleShipBoard(room.id, playerId);
+                    setBattleBoardData(data);
+                } catch (err) {
+                    console.error('Failed to fetch battle board', err);
+                } finally {
+                    setBattleLoading(false);
+                }
+            };
+            fetchBoard();
+        }
+    }, [phase, getRoomStore, getMe, getPlayerOne, getPlayerTwo]);
 
     const handleJoinRoom = async () => {
         const data = await joinRoom('battleship', roomId, playerName, null);
@@ -197,6 +223,54 @@ export default function BattleShipPage() {
         );
     }
 
+    if (phase === 'battle') {
+        if (battleLoading || !battleBoardData) {
+            return (
+                <HomeLayout>
+                    <div className="flex items-center justify-center min-h-screen">
+                        <div className="text-lg">Đang tải dữ liệu trận đấu...</div>
+                    </div>
+                </HomeLayout>
+            );
+        }
+        // Mapping ships và shots vào board
+        const board: import('@/models/game').Square[][] = Array(10).fill(null).map(() => Array(10).fill(null).map(() => ({ status: 'empty' as const, hover: false })));
+        // Đặt ships
+        battleBoardData.ships.forEach(ship => {
+            ship.positions.forEach((pos, index) => {
+                board[pos.x][pos.y] = { ...board[pos.x][pos.y], status: 'ship', shipPart: {
+                    shipId: ship.size,
+                    index: index + 1,
+                    direction: ship.orientation
+                } };
+            });
+        });
+        // Đánh dấu shots
+        battleBoardData.shots.forEach(shot => {
+            const { x, y } = shot.position;
+            if (board[x][y].status === 'ship') {
+                board[x][y].status = 'hit';
+            } else {
+                board[x][y].status = 'miss';
+            }
+        });
+        // Chuyển đổi ships nếu cần (id, placed)
+        const shipsForBoard = battleBoardData.ships.map((ship, idx) => ({
+            id: idx + 1,
+            size: ship.size,
+            placed: true,
+            name: ship.name,
+            orientation: ship.orientation,
+            positions: ship.positions,
+            position: ship.positions[0] || undefined,
+        }));
+        return (
+            <HomeLayout>
+                <BattleBoard myBoardInit={board} myShipsInit={shipsForBoard} />
+            </HomeLayout>
+        );
+    }
+
     return (
         <HomeLayout>
             {/* Modal nhập tên */}
@@ -241,9 +315,6 @@ export default function BattleShipPage() {
                     }}
                     setPhase={setPhase}
                 />
-            )}
-            {phase === 'battle' && myBoard && myShips && (
-                <BattleBoard myBoardInit={myBoard} myShipsInit={myShips} />
             )}
         </HomeLayout>
     );
