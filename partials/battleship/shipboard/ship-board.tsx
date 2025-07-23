@@ -11,6 +11,7 @@ import { useSocketStore } from '@/stores/socketStore';
 import { Socket } from 'socket.io-client';
 import { useRoomStore } from '@/stores/roomStore';
 import { RoomPlayerStatus } from '@/models/player';
+import { updateRoomStatus } from "@/services/roomService"
 
 interface ShipBoardProps {
     onStart?: (board: Square[][], ships: Ship[], callback: Function) => void;
@@ -83,6 +84,7 @@ const ShipBoard = ({ onStart, setPhase }: ShipBoardProps) => {
                     if (getPlayerTwo()?.status === RoomPlayerStatus.READY_TO_BATTLE) {
                         setPhase?.('battle');
                         setWaitingOther(false);
+                        updateRoomStatus(getRoom()!.id, 'battle');
                     }
                 }
             } else if (payload.player_id == getPlayerTwo()?.player_id) {
@@ -96,6 +98,7 @@ const ShipBoard = ({ onStart, setPhase }: ShipBoardProps) => {
                     if (getPlayerOne()?.status === RoomPlayerStatus.READY_TO_BATTLE) {
                         setPhase?.('battle');
                         setWaitingOther(false);
+                        updateRoomStatus(getRoom()!.id, 'battle');
                     }
                 }
             }
@@ -158,6 +161,7 @@ const ShipBoard = ({ onStart, setPhase }: ShipBoardProps) => {
     };
 
     const handleSquareClick = (x: number, y: number) => {
+        if (waitingOther) return; // Không cho phép đặt lại thuyền khi đang chờ
         // Nếu đang đặt thuyền mới
         if (currentShipIndex < ships.length) {
             const currentShip = ships[currentShipIndex];
@@ -330,18 +334,19 @@ const ShipBoard = ({ onStart, setPhase }: ShipBoardProps) => {
                 
                 {/* Board squares */}
                 <div 
-                    className="grid grid-cols-10 gap-1"
+                    className={`grid grid-cols-10 gap-1 ${waitingOther ? 'cursor-not-allowed opacity-70' : ''}`}
                     onMouseLeave={handleMouseLeave}
                 >
                     {board.map((row, x) =>
                         row.map((square, y) => (
-                            <ShipSquare
-                                key={`${x}-${y}`}
-                                square={square}
-                                position={{ x, y }}
-                                onClick={() => handleSquareClick(x, y)}
-                                onHover={() => handleSquareHover(x, y)}
-                            />
+                            <div key={`${x}-${y}`} className={waitingOther ? 'cursor-not-allowed' : ''}>
+                                <ShipSquare
+                                    square={square}
+                                    position={{ x, y }}
+                                    onClick={() => handleSquareClick(x, y)}
+                                    onHover={() => handleSquareHover(x, y)}
+                                />
+                            </div>
                         ))
                     )}
                 </div>
