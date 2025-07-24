@@ -8,6 +8,7 @@ export interface BattleShipBoard {
     player_id: string;
     ships: Ship[];
     shots: Shot[];
+    opponent_shots?: Shot[];
 }
 
 export interface Ship {

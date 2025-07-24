@@ -176,7 +176,8 @@ export default function BattleShipPage() {
             room_id: getRoomStore()?.id || "",
             player_id: player === 1 ? getPlayerOne()?.player_id : getPlayerTwo()?.player_id,
             ships: getPlacedShips(),
-            shots: [] // Initialize with empty shots
+            shots: [], // Initialize with empty shots
+            opponent_shots: [] // Initialize with empty opponent shots
         } as BattleShipBoard;
         createBattleShipBoard(payload);
     };
@@ -233,26 +234,31 @@ export default function BattleShipPage() {
                 </HomeLayout>
             );
         }
-        // Mapping ships và shots vào board
-        const board: import('@/models/game').Square[][] = Array(10).fill(null).map(() => Array(10).fill(null).map(() => ({ status: 'empty' as const, hover: false })));
-        // Đặt ships
+        // Mapping ships vào myBoard
+        const myBoard: import('@/models/game').Square[][] = Array(10).fill(null).map(() => Array(10).fill(null).map(() => ({ status: 'empty' as const, hover: false })));
         battleBoardData.ships.forEach(ship => {
             ship.positions.forEach((pos, index) => {
-                board[pos.x][pos.y] = { ...board[pos.x][pos.y], status: 'ship', shipPart: {
+                myBoard[pos.x][pos.y] = { ...myBoard[pos.x][pos.y], status: 'ship', shipPart: {
                     shipId: ship.size,
                     index: index + 1,
                     direction: ship.orientation
                 } };
             });
         });
-        // Đánh dấu shots
-        battleBoardData.shots.forEach(shot => {
+        // opponent_shots lên myBoard
+        battleBoardData.opponent_shots?.forEach(shot => {
             const { x, y } = shot.position;
-            if (board[x][y].status === 'ship') {
-                board[x][y].status = 'hit';
+            if (myBoard[x][y].status === 'ship') {
+                myBoard[x][y].status = 'hit';
             } else {
-                board[x][y].status = 'miss';
+                myBoard[x][y].status = 'miss';
             }
+        });
+        // Mapping shots lên opponentBoard
+        const opponentBoard: import('@/models/game').Square[][] = Array(10).fill(null).map(() => Array(10).fill(null).map(() => ({ status: 'empty' as const, hover: false })));
+        battleBoardData.shots?.forEach(shot => {
+            const { x, y } = shot.position;
+            opponentBoard[x][y].status = shot.status;
         });
         // Chuyển đổi ships nếu cần (id, placed)
         const shipsForBoard = battleBoardData.ships.map((ship, idx) => ({
@@ -266,7 +272,7 @@ export default function BattleShipPage() {
         }));
         return (
             <HomeLayout>
-                <BattleBoard myBoardInit={board} myShipsInit={shipsForBoard} />
+                <BattleBoard myBoardInit={myBoard} myShipsInit={shipsForBoard} opponentBoardInit={opponentBoard} />
             </HomeLayout>
         );
     }
@@ -303,7 +309,6 @@ export default function BattleShipPage() {
                     </div>
                 </div>
             )}
-
             {phase === 'lobby' && <Lobby />}
             {phase === 'setup' && (
                 <ShipBoard

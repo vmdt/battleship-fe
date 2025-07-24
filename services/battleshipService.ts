@@ -10,3 +10,12 @@ export async function getBattleShipBoard(roomId: string, playerId: string): Prom
     const result = await axios.get<BattleShipBoard>(`/boardgame/battleship/room/${roomId}/player/${playerId}`);
     return result.data;
 }
+
+export async function attackBattleShip(roomId: string, playerId: string, position: { x: number, y: number }): Promise<boolean> {
+    const result = await axios.put<boolean>(`/boardgame/battleship/attack`, {
+        room_id: roomId,
+        player_id: playerId,
+        position
+    });
+    return result.data;
+}

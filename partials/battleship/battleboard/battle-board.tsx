@@ -4,6 +4,10 @@ import { useEffect, useState } from 'react';
 import ShipSquare from '@/components/Square/ShipSquare';
 import { Square } from '@/models/game';
 import { Ship } from '@/models/game/ship';
+import { attackBattleShip } from '@/services/battleshipService';
+import { useRoomStore } from '@/stores/roomStore';
+import { useSocketStore } from '@/stores/socketStore';
+import { Socket } from 'socket.io-client';
 
 const BOARD_SIZE = 10;
 
@@ -15,21 +19,54 @@ const createEmptyBoard = (): Square[][] =>
         }))
     );
 
-// Mock opponent's ships for simulation
-const opponentShipsLayout: Ship[] = [
-    { id: 1, size: 5, placed: true, positions: [{x: 1, y: 1}, {x: 1, y: 2}, {x: 1, y: 3}, {x: 1, y: 4}, {x: 1, y: 5}] },
-    { id: 2, size: 4, placed: true, positions: [{x: 3, y: 3}, {x: 4, y: 3}, {x: 5, y: 3}, {x: 6, y: 3}] },
-];
 
-
-export function BattleBoard({ myBoardInit, myShipsInit }: { myBoardInit?: Square[][], myShipsInit?: Ship[] }) {
+export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { myBoardInit?: Square[][], myShipsInit?: Ship[], opponentBoardInit?: Square[][] }) {
     const [myBoard, setMyBoard] = useState<Square[][]>(myBoardInit ?? createEmptyBoard());
     const [myShips, setMyShips] = useState<Ship[]>(myShipsInit ?? []);
-    const [opponentBoard, setOpponentBoard] = useState<Square[][]>(createEmptyBoard());
+    const [opponentBoard, setOpponentBoard] = useState<Square[][]>(opponentBoardInit ?? createEmptyBoard());
     const [isMyTurn, setIsMyTurn] = useState(true);
     const [gameStatus, setGameStatus] = useState("Your turn");
+    const { getRoom, getPlayerOne, getPlayerTwo, getMe } = useRoomStore();
+    const { getSocket } = useSocketStore();
 
-    const handleAttack = (x: number, y: number) => {
+    // Listen for opponent's attack via socket
+    useEffect(() => {
+        const socket = getSocket("battleship")?.socket as Socket;
+
+        const handleOpponentAttack = (data: {
+            event: string, 
+            room_id: string, 
+            player_id: string, 
+            shot: { position: {x: number, y: number}, status: 'hit' | 'miss' } 
+        }) => {
+            console.log("Opponent's attack received:", data);
+            console.log(getMe(), getPlayerOne()?.player_id, getPlayerTwo()?.player_id);
+            // Nếu player_id là của mình thì bỏ qua
+            const myPlayerId = (getMe() === 1 ? getPlayerOne()?.player_id : getPlayerTwo()?.player_id);
+            if (data.player_id === myPlayerId) return;
+
+            // Update my board with opponent's shot
+            setMyBoard(prev => {
+                const newBoard = prev.map(row => row.map(sq => ({ ...sq })));
+                const { position, status } = data.shot;
+                newBoard[position.x][position.y].status = status;
+                return newBoard;
+            })
+
+            // // Chuyển lượt về cho mình
+            setTimeout(() => {
+                setIsMyTurn(true);
+                setGameStatus("Your turn");
+            }, 1000);
+        };
+
+        socket.on("battleship:attack", handleOpponentAttack);
+        return () => {
+            socket.off("battleship:attack", handleOpponentAttack);
+        };
+    }, [getSocket, getMe, getPlayerOne, getPlayerTwo]);
+
+    const handleAttack = async (x: number, y: number) => {
         if (!isMyTurn) return;
 
         const targetSquare = opponentBoard[x][y];
@@ -37,43 +74,18 @@ export function BattleBoard({ myBoardInit, myShipsInit }: { myBoardInit?: Square
             return; // Already attacked
         }
 
-        const newOpponentBoard = opponentBoard.map(row => row.map(sq => ({...sq})));
-        
-        const isHit = opponentShipsLayout.some(ship => 
-            ship.positions?.some(pos => pos.x === x && pos.y === y)
-        );
-
-        if (isHit) {
-            newOpponentBoard[x][y].status = 'hit';
-        } else {
-            newOpponentBoard[x][y].status = 'miss';
-        }
-
-        setOpponentBoard(newOpponentBoard);
-        setIsMyTurn(false);
-        setGameStatus("Opponent's turn");
-
-
-        // Simulate opponent's turn
+        const result = await attackBattleShip(getRoom()!.id, getMe() === 1 ? getPlayerOne()!.player_id : getPlayerTwo()!.player_id, { x, y });
+        setOpponentBoard(prev => {
+            const newBoard = prev.map(row => row.map(sq => ({ ...sq })));
+            newBoard[x][y].status = result ? 'hit' : 'miss';
+            return newBoard;
+        });
+        // Đợi một chút rồi mới chuyển lượt
         setTimeout(() => {
-            // A simple AI: random attack
-            let ox, oy;
-            do {
-                ox = Math.floor(Math.random() * BOARD_SIZE);
-                oy = Math.floor(Math.random() * BOARD_SIZE);
-            } while (myBoard[ox][oy].status === 'hit' || myBoard[ox][oy].status === 'miss');
-            
-            const newMyBoard = myBoard.map(row => row.map(sq => ({...sq})));
-            if (newMyBoard[ox][oy].status === 'ship') {
-                newMyBoard[ox][oy].status = 'hit';
-            } else {
-                newMyBoard[ox][oy].status = 'miss';
-            }
-            setMyBoard(newMyBoard);
-            setIsMyTurn(true);
-            setGameStatus("Your turn");
-            // TODO: Check for lose condition
-        }, 1500);
+            setIsMyTurn(false);
+            setGameStatus("Opponent's turn");
+            // TODO: Xử lý nhận lượt lại từ server hoặc socket
+        }, 600);
     };
 
     const renderBoard = (
