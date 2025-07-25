@@ -1,4 +1,4 @@
-import { CreateRoomResponse } from "@/models";
+import { CreateRoomResponse, GetRoomResponse } from "@/models";
 import axios from "axios";
 
 export async function playerCreateRoom(gameId: string, playerName: string, userId: string | null): Promise<CreateRoomResponse> {
@@ -9,8 +9,8 @@ export async function playerCreateRoom(gameId: string, playerName: string, userI
     return result.data;
 }
 
-export async function getRoom(roomId: string): Promise<any> {
-    const result = await axios.get(`${process.env.NEXT_PUBLIC_BASE_API_URL}/room/${roomId}`);
+export async function getRoom(roomId: string): Promise<GetRoomResponse> {
+    const result = await axios.get<GetRoomResponse>(`${process.env.NEXT_PUBLIC_BASE_API_URL}/room/${roomId}`);
     return result.data;
 }
 

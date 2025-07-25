@@ -13,6 +13,7 @@ export interface RoomPlayerModel {
     room_id: string;
     player_id: string;
     status: RoomPlayerStatus;
+    me: number;
     player: PlayerModel;
 }
 

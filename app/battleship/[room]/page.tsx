@@ -79,9 +79,10 @@ export default function BattleShipPage() {
 
                     const playerCount = roomData.players.length;
                     if (playerCount >= 2) {
-                        setPlayerOne(roomData.players[0]);
-                        setPlayerTwo(roomData.players[1]);
-                        
+                        const playerOne = roomData.players.find(p => p.me === 1);
+                        const playerTwo = roomData.players.find(p => p.me === 2);
+                        setPlayerOne(playerOne || null);
+                        setPlayerTwo(playerTwo || null);
                         // Just show full screen if current user is not player in room
                         const currentMe = getMe();
                         const hasPlayerOne = getPlayerOne();

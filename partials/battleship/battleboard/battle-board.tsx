@@ -29,6 +29,16 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
     const { getRoom, getPlayerOne, getPlayerTwo, getMe } = useRoomStore();
     const { getSocket } = useSocketStore();
 
+    // Set turn state from room.turn
+    useEffect(() => {
+        const room = getRoom();
+        console.log("Room data:", room);
+        if (room && typeof room.turn === 'number') {
+            setIsMyTurn(room.turn === getMe());
+            setGameStatus(room.turn === getMe() ? "Your turn" : "Opponent's turn");
+        }
+    }, [getRoom, getMe]);
+
     // Listen for opponent's attack via socket
     useEffect(() => {
         const socket = getSocket("battleship")?.socket as Socket;
@@ -39,9 +49,6 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
             player_id: string, 
             shot: { position: {x: number, y: number}, status: 'hit' | 'miss' } 
         }) => {
-            console.log("Opponent's attack received:", data);
-            console.log(getMe(), getPlayerOne()?.player_id, getPlayerTwo()?.player_id);
-            // Nếu player_id là của mình thì bỏ qua
             const myPlayerId = (getMe() === 1 ? getPlayerOne()?.player_id : getPlayerTwo()?.player_id);
             if (data.player_id === myPlayerId) return;
 
@@ -53,7 +60,7 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
                 return newBoard;
             })
 
-            // // Chuyển lượt về cho mình
+            
             setTimeout(() => {
                 setIsMyTurn(true);
                 setGameStatus("Your turn");
@@ -67,6 +74,7 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
     }, [getSocket, getMe, getPlayerOne, getPlayerTwo]);
 
     const handleAttack = async (x: number, y: number) => {
+        // Chỉ cho phép bắn nếu là lượt của mình
         if (!isMyTurn) return;
 
         const targetSquare = opponentBoard[x][y];
@@ -84,7 +92,6 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
         setTimeout(() => {
             setIsMyTurn(false);
             setGameStatus("Opponent's turn");
-            // TODO: Xử lý nhận lượt lại từ server hoặc socket
         }, 600);
     };
 
