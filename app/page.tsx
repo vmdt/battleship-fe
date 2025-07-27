@@ -14,7 +14,7 @@ export default function HomePage() {
 
   // Connect to the socket for the home namespace
   if (!getSocket('user')) {
-    connect('user')
+    // connect('user')
   }
 
   const games = [

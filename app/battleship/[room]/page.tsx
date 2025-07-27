@@ -86,6 +86,7 @@ export default function BattleShipPage() {
                         // Just show full screen if current user is not player in room
                         const currentMe = getMe();
                         const hasPlayerOne = getPlayerOne();
+                        setMe(2);
                         
                         if (currentMe === 1 && hasPlayerOne) {
                             setRoom(roomData.room);

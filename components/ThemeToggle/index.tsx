@@ -21,18 +21,29 @@ interface ModeToggleProps {
 export function ModeToggle({ collapsed }: ModeToggleProps) {
   const { setTheme: setNextTheme, resolvedTheme } = useTheme()
   const { theme, setTheme } = useSettingStore()
-    React.useEffect(() => {
-    if (theme && theme !== resolvedTheme) {
+  const lastSyncedTheme = React.useRef<string | null>(null)
+  
+  // Sync theme from store to next-themes only when store theme actually changes
+  React.useEffect(() => {
+    if (theme && theme !== lastSyncedTheme.current) {
+      lastSyncedTheme.current = theme
+      if (theme !== resolvedTheme) {
         setNextTheme(theme)
-        }
-    }, [theme, resolvedTheme, setNextTheme])
+      }
+    }
+  }, [theme, resolvedTheme, setNextTheme])
+
+  const handleThemeChange = (newTheme: 'light' | 'dark' | 'system') => {
+    setTheme(newTheme)
+    setNextTheme(newTheme)
+  }
 
   if (collapsed) {
     return (
         <Button 
             variant="outline" 
             size="icon" 
-            onClick={() => setTheme(resolvedTheme === 'light' ? 'dark' : 'light')}
+            onClick={() => handleThemeChange(resolvedTheme === 'light' ? 'dark' : 'light')}
         >
             <Sun className="h-[1.2rem] w-[1.2rem] scale-100 rotate-0 transition-all dark:scale-0 dark:-rotate-90" />
             <Moon className="absolute h-[1.2rem] w-[1.2rem] scale-0 rotate-90 transition-all dark:scale-100 dark:rotate-0" />
@@ -51,13 +62,13 @@ export function ModeToggle({ collapsed }: ModeToggleProps) {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
+        <DropdownMenuItem onClick={() => handleThemeChange("light")}>
           Light
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
+        <DropdownMenuItem onClick={() => handleThemeChange("dark")}>
           Dark
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
+        <DropdownMenuItem onClick={() => handleThemeChange("system")}>
           System
         </DropdownMenuItem>
       </DropdownMenuContent>

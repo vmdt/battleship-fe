@@ -32,12 +32,14 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
     // Set turn state from room.turn
     useEffect(() => {
         const room = getRoom();
-        console.log("Room data:", room);
         if (room && typeof room.turn === 'number') {
             setIsMyTurn(room.turn === getMe());
             setGameStatus(room.turn === getMe() ? "Your turn" : "Opponent's turn");
         }
     }, [getRoom, getMe]);
+
+    // State để kiểm soát trạng thái disconnect của đối phương trong trận
+    const [opponentDisconnected, setOpponentDisconnected] = useState(false);
 
     // Listen for opponent's attack via socket
     useEffect(() => {
@@ -67,9 +69,20 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
             }, 1000);
         };
 
+        const handleUserDisconnected = async (_payload: any) => {
+            setOpponentDisconnected(true);
+        }
+        const handleUserReconnected = async (_payload: any) => {
+            setOpponentDisconnected(false);
+        }
+
         socket.on("battleship:attack", handleOpponentAttack);
+        socket.on('user:disconnected', handleUserDisconnected);
+        socket.on('user:reconnected', handleUserReconnected);
         return () => {
             socket.off("battleship:attack", handleOpponentAttack);
+            socket.off('user:disconnected', handleUserDisconnected);
+            socket.off('user:reconnected', handleUserReconnected);
         };
     }, [getSocket, getMe, getPlayerOne, getPlayerTwo]);
 
@@ -109,7 +122,7 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
         if (isSmall) squareSize = 'xs';
         else if (isLargeBoard) squareSize = 'lg';
         return (
-            <div className={`flex flex-col items-center p-2 bg-gray-100 dark:bg-gray-800 rounded-lg shadow-md ${boardSizeClass}`}>
+            <div className={`flex flex-col items-center p-2 bg-[#699BF7] dark:bg-gray-800 rounded-lg shadow-md ${boardSizeClass}`}>
                 {/* Column labels (A-J) */}
                 <div className={`flex gap-1 ${isSmall ? 'ml-2' : 'ml-8'}`}>
                     {Array.from({ length: BOARD_SIZE }, (_, i) => (
@@ -127,7 +140,7 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
                             </div>
                         ))}
                     </div>
-                    <div className="flex flex-col gap-1 bg-gray-200 dark:bg-gray-900 p-1 rounded-md">
+                    <div className="flex flex-col gap-1 bg-[#699BF7] dark:bg-gray-900 p-1 rounded-md">
                         {board.map((row, rowIndex) => (
                             <div key={rowIndex} className="flex gap-1">
                                 {row.map((square, colIndex) => (
@@ -159,7 +172,8 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
 
     const mainBoard = isMyTurn ? opponentBoard : myBoard;
     const mainBoardTitle = isMyTurn ? "Opponent's Board" : "Your Board";
-    const mainBoardClickHandler = isMyTurn ? handleAttack : () => {};
+    // Nếu đối phương disconnect thì không cho click vào board đối phương
+    const mainBoardClickHandler = isMyTurn && !opponentDisconnected ? handleAttack : () => {};
 
     const secondaryBoard = isMyTurn ? myBoard : opponentBoard;
     const secondaryBoardTitle = isMyTurn ? "Your Board" : "Opponent's Board";
@@ -167,9 +181,15 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
     return (
         <div className="relative p-4 md:p-6 flex flex-col md:flex-row items-center font-sans min-h-screen">
             <div className="w-full max-w-6xl mx-auto flex justify-center md:justify-start items-start md:pl-8 mt-8">
-                <div className="w-full">
+                <div className="w-full relative">
                     <h2 className="text-xl font-semibold mb-2 text-center">{mainBoardTitle}</h2>
                     {renderBoard(mainBoard, mainBoardClickHandler, isMobile, !isMobile)}
+                    {/* Nếu đối phương disconnect thì overlay chữ Disconnect */}
+                    {opponentDisconnected && isMyTurn &&  (
+                        <div className="absolute inset-0 flex items-center justify-center backdrop-invert backdrop-opacity-30 z-100">
+                            <span className="text-red-500 text-2xl font-bold">Disconnected</span>
+                        </div>
+                    )}
                 </div>
             </div>
             <div className="flex flex-col items-center mt-6 w-full">
