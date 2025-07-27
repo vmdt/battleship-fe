@@ -1,27 +1,36 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, use } from 'react';
 import ShipSquare from '@/components/Square/ShipSquare';
 import { Square } from '@/models/game';
 import type { Ship } from '@/models/game/ship';
 import { canPlaceShip, getPreviewPositions } from '@/utils/shipUtils';
 import { useRouter } from 'next/navigation';
+import { useBoardStore } from '@/stores/boardStore';
+import { useSocketStore } from '@/stores/socketStore';
+import { Socket } from 'socket.io-client';
+import { useRoomStore } from '@/stores/roomStore';
+import { RoomPlayerStatus } from '@/models/player';
+import { updateRoomStatus } from "@/services/roomService"
 
 interface ShipBoardProps {
-    onStart?: (board: Square[][], ships: Ship[]) => void;
+    onStart?: (board: Square[][], ships: Ship[], callback: Function) => void;
+    setPhase?: (phase: 'lobby' | 'setup' | 'battle') => void;
 }
 
-const ShipBoard = ({ onStart }: ShipBoardProps) => {
+const ShipBoard = ({ onStart, setPhase }: ShipBoardProps) => {
     const BOARD_SIZE = 10;
     const router = useRouter();
-    
+    const { setPlacedShips } = useBoardStore();
+    const { getRoom, getPlayerOne, getPlayerTwo, setPlayerOne, setPlayerTwo } = useRoomStore();
+
     // Ship configurations
     const initialShips: Ship[] = [
-        { id: 5, size: 5, placed: false }, // Carrier
-        { id: 4, size: 4, placed: false }, // Battleship
-        { id: 3, size: 3, placed: false }, // Cruiser
-        { id: 3, size: 3, placed: false }, // Submarine
-        { id: 2, size: 2, placed: false }, // Destroyer
+        { id: 5, size: 5, placed: false, name: 'Carrier' }, // Carrier
+        { id: 4, size: 4, placed: false, name: 'Battleship' }, // Battleship
+        { id: 3, size: 3, placed: false, name: 'Cruiser' }, // Cruiser
+        { id: 3, size: 3, placed: false, name: 'Submarine' }, // Submarine
+        { id: 2, size: 2, placed: false, name: 'Destroyer' }, // Destroyer
     ];
     const [ships, setShips] = useState<Ship[]>(initialShips);
     
@@ -37,6 +46,8 @@ const ShipBoard = ({ onStart }: ShipBoardProps) => {
     const [currentShipIndex, setCurrentShipIndex] = useState(0);
     const [orientation, setOrientation] = useState<'horizontal' | 'vertical'>('horizontal');
     const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
+    const { getSocket } = useSocketStore();
+    const [waitingOther, setWaitingOther] = useState(false);
 
     // Handle rotation with R key
     useEffect(() => {
@@ -49,6 +60,50 @@ const ShipBoard = ({ onStart }: ShipBoardProps) => {
         window.addEventListener('keydown', handleKeyPress);
         return () => window.removeEventListener('keydown', handleKeyPress);
     }, [hoverPosition]);
+
+    useEffect(() => {
+        const socket = getSocket('battleship')?.socket as Socket;
+        if (!socket) {
+            console.error('Socket connection failed');
+            return;
+        }
+
+        socket.on('room:started', (payload: {
+            player_id: string;
+            room_id: string;
+            event: string;
+        }) => {
+            if (payload.player_id == getPlayerOne()?.player_id) {
+                const playerOne = getPlayerOne();
+                if (playerOne) {
+                    setPlayerOne({
+                        ...playerOne,
+                        status: RoomPlayerStatus.READY_TO_BATTLE
+                    });
+
+                    if (getPlayerTwo()?.status === RoomPlayerStatus.READY_TO_BATTLE) {
+                        setPhase?.('battle');
+                        setWaitingOther(false);
+                        updateRoomStatus(getRoom()!.id, 'battle');
+                    }
+                }
+            } else if (payload.player_id == getPlayerTwo()?.player_id) {
+                const playerTwo = getPlayerTwo();
+                if (playerTwo) {
+                    setPlayerTwo({
+                        ...playerTwo,
+                        status: RoomPlayerStatus.READY_TO_BATTLE
+                    });
+                    // Nếu mình đã ready thì kiểm tra luôn
+                    if (getPlayerOne()?.status === RoomPlayerStatus.READY_TO_BATTLE) {
+                        setPhase?.('battle');
+                        setWaitingOther(false);
+                        updateRoomStatus(getRoom()!.id, 'battle');
+                    }
+                }
+            }
+        });
+    }, [getSocket]);
 
     // Shared rotation function
     const handleRotate = () => {
@@ -106,6 +161,7 @@ const ShipBoard = ({ onStart }: ShipBoardProps) => {
     };
 
     const handleSquareClick = (x: number, y: number) => {
+        if (waitingOther) return; // Không cho phép đặt lại thuyền khi đang chờ
         // Nếu đang đặt thuyền mới
         if (currentShipIndex < ships.length) {
             const currentShip = ships[currentShipIndex];
@@ -144,6 +200,16 @@ const ShipBoard = ({ onStart }: ShipBoardProps) => {
                             ? { ...ship, placed: true, position: { x, y }, orientation, positions }
                             : ship
                     );
+                    // Sau khi đặt, cập nhật placedShips vào store (kiểu mới)
+                    const placedShipsForStore = newShips
+                        .filter(s => s.placed && s.positions)
+                        .map(s => ({
+                            name: s.name || '',
+                            positions: s.positions!,
+                            size: s.size,
+                            orientation: s.orientation as 'horizontal' | 'vertical',
+                        }));
+                    setPlacedShips(placedShipsForStore);
                     // Sau khi đặt, kiểm tra xem đã hết thuyền chưa
                     if (newShips.every(s => s.placed)) {
                         setCurrentShipIndex(newShips.length); // Hết thuyền, chuyển sang chế độ chờ
@@ -175,15 +241,28 @@ const ShipBoard = ({ onStart }: ShipBoardProps) => {
                 return newBoard;
             });
             // Đánh dấu thuyền là chưa đặt
-            setShips((prevShips: Ship[]) => prevShips.map((s, idx) =>
-                idx === shipIdx
-                    ? { ...s, placed: false, position: undefined, orientation: undefined, positions: undefined }
-                    : s
-            ));
-            // Cho phép đặt lại thuyền này
-            setCurrentShipIndex(shipIdx);
-            setOrientation(ship.orientation || 'horizontal');
-            setHoverPosition(null);
+            setShips((prevShips: Ship[]) => {
+                const newShips = prevShips.map((s, idx) =>
+                    idx === shipIdx
+                        ? { ...s, placed: false, position: undefined, orientation: undefined, positions: undefined }
+                        : s
+                );
+                // Sau khi bỏ đặt, cập nhật placedShips vào store (kiểu mới)
+                const placedShipsForStore = newShips
+                    .filter(s => s.placed && s.positions)
+                    .map(s => ({
+                        name: s.name || '',
+                        positions: s.positions!,
+                        size: s.size,
+                        orientation: s.orientation as 'horizontal' | 'vertical',
+                    }));
+                setPlacedShips(placedShipsForStore);
+                // Cho phép đặt lại thuyền này
+                setCurrentShipIndex(shipIdx);
+                setOrientation(ship.orientation || 'horizontal');
+                setHoverPosition(null);
+                return newShips;
+            });
         }
     };
 
@@ -197,6 +276,14 @@ const ShipBoard = ({ onStart }: ShipBoardProps) => {
         });
     };
 
+    const handleCallBackStart = () => {
+        const socket = getSocket("battleship")?.socket as Socket;
+        if (!socket) {
+            console.error("Socket connection failed");
+            return;
+        }
+        setWaitingOther(true);
+    }
     // Tính số thuyền còn lại (chưa đặt)
     const shipsLeft = ships.filter(s => !s.placed).length;
 
@@ -247,18 +334,19 @@ const ShipBoard = ({ onStart }: ShipBoardProps) => {
                 
                 {/* Board squares */}
                 <div 
-                    className="grid grid-cols-10 gap-1"
+                    className={`grid grid-cols-10 gap-1 ${waitingOther ? 'cursor-not-allowed opacity-70' : ''}`}
                     onMouseLeave={handleMouseLeave}
                 >
                     {board.map((row, x) =>
                         row.map((square, y) => (
-                            <ShipSquare
-                                key={`${x}-${y}`}
-                                square={square}
-                                position={{ x, y }}
-                                onClick={() => handleSquareClick(x, y)}
-                                onHover={() => handleSquareHover(x, y)}
-                            />
+                            <div key={`${x}-${y}`} className={waitingOther ? 'cursor-not-allowed' : ''}>
+                                <ShipSquare
+                                    square={square}
+                                    position={{ x, y }}
+                                    onClick={() => handleSquareClick(x, y)}
+                                    onHover={() => handleSquareHover(x, y)}
+                                />
+                            </div>
                         ))
                     )}
                 </div>
@@ -279,15 +367,20 @@ const ShipBoard = ({ onStart }: ShipBoardProps) => {
                     <span>Empty</span>
                 </div>
             </div>
-            {/* Start button: only show when all ships placed */}
-            {shipsLeft === 0 && (
-                <button
-                    className="mt-6 px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-lg font-semibold shadow transition-colors"
-                    onClick={() => onStart?.(board, ships)}
-                >
-                    Start
-                </button>
+            {/* Start button: luôn hiển thị, disable khi chưa đặt xong hoặc đang chờ */}
+            {waitingOther && (
+                <div className="mt-4 text-yellow-600 dark:text-yellow-400 font-semibold animate-pulse">
+                    Waiting for other player...
+                </div>
             )}
+            <button
+                className={`mt-6 px-6 py-2 rounded-lg text-lg font-semibold shadow transition-colors \
+                    ${shipsLeft === 0 && !waitingOther ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-400 text-gray-200 cursor-not-allowed'}`}
+                onClick={() => onStart?.(board, ships, handleCallBackStart)}
+                disabled={shipsLeft > 0 || waitingOther}
+            >
+                Start
+            </button>
         </div>
     );
 };

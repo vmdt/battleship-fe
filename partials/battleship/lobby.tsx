@@ -2,8 +2,9 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRoomStore } from "@/stores/roomStore";
 import { useSocketStore } from "@/stores/socketStore";
-import { getRoom, updateRoomPlayer } from "@/services/roomService";
+import { getRoom, kickRoomPlayer, updateRoomPlayer } from "@/services/roomService";
 import { Socket } from "socket.io-client";
+import { useRouter } from "next/navigation";
 
 export default function Lobby() {
   const [hasOpponent, setHasOpponent] = useState(false);
@@ -14,6 +15,7 @@ export default function Lobby() {
     setPlayerTwo, 
     setRoom, 
     setRoomId,
+    setMe,
     getRoom: getRoomFromStore,
     getPlayerOne,
     getPlayerTwo,
@@ -21,6 +23,7 @@ export default function Lobby() {
   } = useRoomStore();
   
   const { getSocket } = useSocketStore();
+  const router = useRouter();
 
   // Check if there is a second player
   const hasPlayerTwo = !!playerTwo;
@@ -112,6 +115,30 @@ export default function Lobby() {
         }
     }
 
+    const handleRoomKicked = async (payload: any) => {
+      console.log('Room kicked:', payload);
+      
+      // Kiểm tra xem player hiện tại có phải là người bị kick không
+      const currentPlayerId = getMe() === 1 ? getPlayerOne()?.player.id : getPlayerTwo()?.player.id;
+      const kickedPlayerId = payload?.player_id || payload?.kicked_player_id;
+      
+      // Chỉ xử lý nếu player hiện tại là người bị kick
+      if (currentPlayerId === kickedPlayerId) {
+        // Reset store
+        setRoom(null);
+        setRoomId(null);
+        setPlayerOne(null);
+        setPlayerTwo(null);
+        setMe(0);
+        
+        // Show toast notification
+        alert('Bạn đã bị chủ phòng kick!');
+        
+        // Navigate back to battleship page
+        router.push('/battleship');
+      }
+    }
+
     // Register listener for room:joined event
     socket.on('room:joined', handleRoomJoined);
 
@@ -120,13 +147,16 @@ export default function Lobby() {
 
     socket.on('user:reconnected', handleUserReconnected);
 
+    socket.on('room:kicked', handleRoomKicked);
+
     // Cleanup listener when component unmounts
     return () => {
       socket.off('room:joined', handleRoomJoined);
       socket.off('user:disconnected', handleUserDisconnected);
       socket.off('user:reconnected', handleUserReconnected);
+      socket.off('room:kicked', handleRoomKicked);
     };
-  }, [getSocket, setPlayerOne, setPlayerTwo, setRoom, setRoomId]);
+  }, [getSocket, setPlayerOne, setPlayerTwo, setRoom, setRoomId, setMe, router]);
 
   // Helper function to check if player is disconnected
   const isPlayerDisconnected = (player: number) => {
@@ -139,6 +169,16 @@ export default function Lobby() {
     }
     return false;
   };
+
+  const handleKickPlayer = async (player: number) => {
+    if (player === 2 && isPlayerOne && hasPlayerTwo) {
+      const isKick = await kickRoomPlayer(getRoomFromStore()?.id || "", getPlayerTwo()?.player.id || "");
+      if (isKick) {
+        setPlayerTwo(null);
+        setHasOpponent(false);
+      }
+    }
+  }
 
   // Nếu có 2 người chơi và người hiện tại là player 1, hiển thị lobby của player 1
   if (hasPlayerTwo && isPlayerOne) {
@@ -193,10 +233,7 @@ export default function Lobby() {
             {/* Nút kích ở góc trên phải avatar - chỉ hiển thị cho player 1 */}
             <button
               className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center bg-red-600 dark:bg-red-700 text-white rounded-full shadow hover:bg-red-700 dark:hover:bg-red-800 transition z-10"
-              onClick={() => {
-                // TODO: Implement kick player 2 functionality
-                console.log('Kick player 2');
-              }}
+              onClick={() => handleKickPlayer(2)}
               title="Kích người chơi 2"
             >
               <span className="text-lg leading-none">×</span>
@@ -359,7 +396,7 @@ export default function Lobby() {
               {/* Nút X ở góc trên phải avatar */}
               <button
                 className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center bg-red-600 dark:bg-red-700 text-white rounded-full shadow hover:bg-red-700 dark:hover:bg-red-800 transition z-10"
-                onClick={() => setHasOpponent(false)}
+                onClick={() => handleKickPlayer(2)}
                 title="Kích"
               >
                 <span className="text-lg leading-none">×</span>

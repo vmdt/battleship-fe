@@ -14,7 +14,7 @@ interface ShipSquareProps {
 
 const ShipSquare = ({ square, position, onClick, onHover, size = 'md' }: ShipSquareProps) => {
     const getSquareClasses = () => {
-        const baseClasses = "border border-gray-300 dark:border-gray-600 cursor-pointer transition-all duration-200 flex items-center justify-center overflow-hidden rounded-sm";
+        const baseClasses = "border-2 border-[#000000] dark:border-gray-600 cursor-pointer transition-all duration-200 flex items-center justify-center overflow-hidden rounded-[8px]";
         let sizeClasses = '';
         if (size === 'lg') sizeClasses = 'w-12 h-12 text-lg';
         else if (size === 'md') sizeClasses = 'w-8 h-8';
@@ -25,13 +25,13 @@ const ShipSquare = ({ square, position, onClick, onHover, size = 'md' }: ShipSqu
             case 'empty':
                 return `${baseClasses} ${sizeClasses} bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-gray-700`;
             case 'ship':
-                return `${baseClasses} ${sizeClasses} bg-transparent`;
+                return `${baseClasses} ${sizeClasses} bg-white dark:bg-gray-800`;
             case 'hit-all':
                 return `${baseClasses} ${sizeClasses} bg-transparent border-red-500 dark:border-red-600 hover:bg-red-100 dark:hover:bg-red-700`;
             case 'hit':
-                return `${baseClasses} ${sizeClasses} bg-red-500 dark:bg-red-600 text-white`;
+                return `${baseClasses} ${sizeClasses} bg-[#F16858] dark:bg-[#F16858] text-white`;
             case 'miss':
-                return `${baseClasses} ${sizeClasses} bg-blue-200 dark:bg-blue-800`;
+                return `${baseClasses} ${sizeClasses} bg-blue-500 dark:bg-blue-800`;
             case 'preview':
                 return `${baseClasses} ${sizeClasses} bg-green-300 dark:bg-green-600`;
             case 'preview-invalid':
@@ -42,7 +42,6 @@ const ShipSquare = ({ square, position, onClick, onHover, size = 'md' }: ShipSqu
     };
 
     const getShipImagePath = (id: number, index: number) => {
-        console.log(`Loading ship image for ID: ${id}, Index: ${index}`);
         return `/assets/images/ship${id}/ship${id}_${index}.png`;
     };
 

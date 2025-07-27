@@ -12,9 +12,13 @@ import Lobby from '@/partials/battleship/lobby';
 import { getRoom, joinRoom } from '@/services/roomService';
 import { useRoomStore } from '@/stores/roomStore';
 import { useParams } from 'next/navigation';
+import { useBoardStore } from '@/stores/boardStore';
+import { createBattleShipBoard } from '@/services/battleshipService';
+import { BattleShipBoard } from '@/models';
+import { getBattleShipBoard } from '@/services/battleshipService';
 
 export default function BattleShipPage() {
-    const [phase, setPhase] = useState<'setup' | 'battle'>('setup');
+    const [phase, setPhase] = useState<'lobby' | 'setup' | 'battle'>('lobby');
     const [myBoard, setMyBoard] = useState<Square[][] | null>(null);
     const [myShips, setMyShips] = useState<Ship[] | null>(null);
     const [loading, setLoading] = useState(true);
@@ -22,9 +26,12 @@ export default function BattleShipPage() {
     const [roomFull, setRoomFull] = useState(false);
     const [roomNotFound, setRoomNotFound] = useState(false);
     const [playerName, setPlayerName] = useState("");
+    const [battleBoardData, setBattleBoardData] = useState<BattleShipBoard | null>(null);
+    const [battleLoading, setBattleLoading] = useState(false);
     
     const { connect, getSocket } = useSocketStore();
-    const { setRoom, setRoomId, setPlayerOne, setMe, setPlayerTwo, getPlayerOne, getMe } = useRoomStore();
+    const { setRoom, setRoomId, setPlayerOne, setMe, setPlayerTwo, getPlayerOne, getPlayerTwo, getMe, getRoom: getRoomStore } = useRoomStore();
+    const { getPlacedShips } = useBoardStore();
     const params = useParams();
     const roomId = params.room as string;
 
@@ -39,6 +46,7 @@ export default function BattleShipPage() {
             return;
         }
         socket.emit('room:join', { roomId: "user:test" });
+        socket.emit('room:join', { roomId: roomId });
         socket.on('user:disconnected', (payload) => {
             console.log('User disconnected:', payload);
         });
@@ -49,7 +57,6 @@ export default function BattleShipPage() {
     useEffect(() => {
         const checkRoom = async () => {
             if (!roomId) return;
-            
             try {
                 setLoading(true);
                 setRoomNotFound(false); // Reset error state
@@ -62,14 +69,24 @@ export default function BattleShipPage() {
                 console.log('Room data:', roomData);
                 
                 if (roomData.room.id) {
+                    if (roomData.room.status === "lobby") {
+                        setPhase("lobby");
+                    } else if (roomData.room.status === "setup") {
+                        setPhase("setup");
+                    } else if (roomData.room.status === "battle") {
+                        setPhase("battle");
+                    }
+
                     const playerCount = roomData.players.length;
                     if (playerCount >= 2) {
-                        setPlayerOne(roomData.players[0]);
-                        setPlayerTwo(roomData.players[1]);
-                        
+                        const playerOne = roomData.players.find(p => p.me === 1);
+                        const playerTwo = roomData.players.find(p => p.me === 2);
+                        setPlayerOne(playerOne || null);
+                        setPlayerTwo(playerTwo || null);
                         // Just show full screen if current user is not player in room
                         const currentMe = getMe();
                         const hasPlayerOne = getPlayerOne();
+                        setMe(2);
                         
                         if (currentMe === 1 && hasPlayerOne) {
                             setRoom(roomData.room);
@@ -118,6 +135,27 @@ export default function BattleShipPage() {
         checkRoom();
     }, [roomId, setRoom, setRoomId, setPlayerOne, setPlayerTwo, getMe, getPlayerOne]);
 
+    useEffect(() => {
+        if (phase === 'battle') {
+            const fetchBoard = async () => {
+                setBattleLoading(true);
+                try {
+                    const room = getRoomStore();
+                    const player = getMe();
+                    let playerId = player === 1 ? getPlayerOne()?.player_id : getPlayerTwo()?.player_id;
+                    if (!room?.id || !playerId) return;
+                    const data = await getBattleShipBoard(room.id, playerId);
+                    setBattleBoardData(data);
+                } catch (err) {
+                    console.error('Failed to fetch battle board', err);
+                } finally {
+                    setBattleLoading(false);
+                }
+            };
+            fetchBoard();
+        }
+    }, [phase, getRoomStore, getMe, getPlayerOne, getPlayerTwo]);
+
     const handleJoinRoom = async () => {
         const data = await joinRoom('battleship', roomId, playerName, null);
         console.log('Join room data:', data);
@@ -133,6 +171,17 @@ export default function BattleShipPage() {
                 setShowNameModal(false);
             }
         })
+    };
+
+    const handleStartGame = (player: number) => {
+        const payload = {
+            room_id: getRoomStore()?.id || "",
+            player_id: player === 1 ? getPlayerOne()?.player_id : getPlayerTwo()?.player_id,
+            ships: getPlacedShips(),
+            shots: [], // Initialize with empty shots
+            opponent_shots: [] // Initialize with empty opponent shots
+        } as BattleShipBoard;
+        createBattleShipBoard(payload);
     };
 
     if (loading) {
@@ -177,6 +226,59 @@ export default function BattleShipPage() {
         );
     }
 
+    if (phase === 'battle') {
+        if (battleLoading || !battleBoardData) {
+            return (
+                <HomeLayout>
+                    <div className="flex items-center justify-center min-h-screen">
+                        <div className="text-lg">Đang tải dữ liệu trận đấu...</div>
+                    </div>
+                </HomeLayout>
+            );
+        }
+        // Mapping ships vào myBoard
+        const myBoard: import('@/models/game').Square[][] = Array(10).fill(null).map(() => Array(10).fill(null).map(() => ({ status: 'empty' as const, hover: false })));
+        battleBoardData.ships.forEach(ship => {
+            ship.positions.forEach((pos, index) => {
+                myBoard[pos.x][pos.y] = { ...myBoard[pos.x][pos.y], status: 'ship', shipPart: {
+                    shipId: ship.size,
+                    index: index + 1,
+                    direction: ship.orientation
+                } };
+            });
+        });
+        // opponent_shots lên myBoard
+        battleBoardData.opponent_shots?.forEach(shot => {
+            const { x, y } = shot.position;
+            if (myBoard[x][y].status === 'ship') {
+                myBoard[x][y].status = 'hit';
+            } else {
+                myBoard[x][y].status = 'miss';
+            }
+        });
+        // Mapping shots lên opponentBoard
+        const opponentBoard: import('@/models/game').Square[][] = Array(10).fill(null).map(() => Array(10).fill(null).map(() => ({ status: 'empty' as const, hover: false })));
+        battleBoardData.shots?.forEach(shot => {
+            const { x, y } = shot.position;
+            opponentBoard[x][y].status = shot.status;
+        });
+        // Chuyển đổi ships nếu cần (id, placed)
+        const shipsForBoard = battleBoardData.ships.map((ship, idx) => ({
+            id: idx + 1,
+            size: ship.size,
+            placed: true,
+            name: ship.name,
+            orientation: ship.orientation,
+            positions: ship.positions,
+            position: ship.positions[0] || undefined,
+        }));
+        return (
+            <HomeLayout>
+                <BattleBoard myBoardInit={myBoard} myShipsInit={shipsForBoard} opponentBoardInit={opponentBoard} />
+            </HomeLayout>
+        );
+    }
+
     return (
         <HomeLayout>
             {/* Modal nhập tên */}
@@ -209,20 +311,18 @@ export default function BattleShipPage() {
                     </div>
                 </div>
             )}
-
-            {/* {phase === 'setup' && (
+            {phase === 'lobby' && <Lobby />}
+            {phase === 'setup' && (
                 <ShipBoard
-                    onStart={(board: Square[][], ships: Ship[]) => {
+                    onStart={(board: Square[][], ships: Ship[], callback?: Function) => {
                         setMyBoard(board);
                         setMyShips(ships);
-                        setPhase('battle');
+                        handleStartGame(getMe());
+                        callback && callback();
                     }}
+                    setPhase={setPhase}
                 />
             )}
-            {phase === 'battle' && myBoard && myShips && (
-                <BattleBoard myBoardInit={myBoard} myShipsInit={myShips} />
-            )} */}
-            <Lobby />
         </HomeLayout>
     );
 }
