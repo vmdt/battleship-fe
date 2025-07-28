@@ -12,6 +12,7 @@ type SignupModalProps = {
   onLoginClick: () => void;
   onSignup: (username: string, email: string, password: string) => void;
   onGoogleSignup?: () => void;
+  isLoading?: boolean;
 };
 
 export function SignupModal({ 
@@ -19,13 +20,14 @@ export function SignupModal({
   onClose, 
   onLoginClick, 
   onSignup,
-  onGoogleSignup 
+  onGoogleSignup,
+  isLoading = false
 }: SignupModalProps) {
   const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingInternal, setIsLoadingInternal] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,15 +41,18 @@ export function SignupModal({
       return;
     }
     
-    setIsLoading(true);
+    setIsLoadingInternal(true);
     try {
       await onSignup(username, email, password);
     } catch (error) {
       console.error("Signup failed:", error);
     } finally {
-      setIsLoading(false);
+      setIsLoadingInternal(false);
     }
   };
+
+  // Sử dụng isLoading từ prop hoặc internal state
+  const isFormLoading = isLoading || isLoadingInternal;
 
   return (
     <Modal
@@ -70,6 +75,7 @@ export function SignupModal({
               onChange={(e) => setUsername(e.target.value)}
               className="pl-10"
               required
+              disabled={isFormLoading}
             />
           </div>
         </div>
@@ -87,6 +93,7 @@ export function SignupModal({
               onChange={(e) => setEmail(e.target.value)}
               className="pl-10"
               required
+              disabled={isFormLoading}
             />
           </div>
         </div>
@@ -104,11 +111,13 @@ export function SignupModal({
               onChange={(e) => setPassword(e.target.value)}
               className="pl-10 pr-10"
               required
+              disabled={isFormLoading}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              disabled={isFormLoading}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
@@ -119,9 +128,9 @@ export function SignupModal({
         <Button 
           type="submit" 
           className="w-full" 
-          disabled={isLoading}
+          disabled={isFormLoading}
         >
-          {isLoading ? "Đang đăng ký..." : "Đăng ký"}
+          {isFormLoading ? "Đang đăng ký..." : "Đăng ký"}
         </Button>
 
         {/* Divider */}
@@ -141,6 +150,7 @@ export function SignupModal({
             variant="outline"
             onClick={onGoogleSignup}
             className="w-full"
+            disabled={isFormLoading}
           >
             <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
               <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -161,6 +171,7 @@ export function SignupModal({
             alert("Tính năng đăng ký Google sẽ được cập nhật sau");
           }}
           className="w-full"
+          disabled={isFormLoading}
         >
           <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
             <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -180,6 +191,7 @@ export function SignupModal({
             type="button"
             onClick={onLoginClick}
             className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+            disabled={isFormLoading}
           >
             Đăng nhập ngay
           </button>

@@ -11,7 +11,6 @@ import { RoomModel, RoomPlayerModel } from "@/models";
 import { Card } from "@/components/ui/card";
 import { CreateRoomModal } from "@/partials/battleship/home/create-room-modal";
 import { LoginModal } from "@/partials/auth/login-modal";
-import { SignupModal } from "@/partials/auth/signup-modal";
 
 const GAME_ID = "battleship";
 
@@ -20,7 +19,6 @@ const BattleShipPage = () => {
     const [loading, setLoading] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
-    const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
     const { connect, getSocket } = useSocketStore();
     const { setRoom, setRoomId, setPlayerOne, setPlayerTwo, getMe, setMe } = useRoomStore();
     const { isLogin, login } = useUserStore();
@@ -103,36 +101,6 @@ const BattleShipPage = () => {
         
         // Auto open create room modal after login
         setIsCreateModalOpen(true);
-    };
-
-    const handleSignup = async (username: string, email: string, password: string) => {
-        // TODO: Implement actual signup API call
-        console.log('Signup attempt:', username, email, password);
-        
-        // Mock signup for now
-        const mockUser = {
-            id: '2',
-            name: username,
-            email: email,
-            avatar: 'https://api.dicebear.com/9.x/adventurer/svg?seed=' + username
-        };
-        const mockToken = 'mock-token-456';
-        
-        login(mockUser, mockToken);
-        setIsSignupModalOpen(false);
-        
-        // Auto open create room modal after signup
-        setIsCreateModalOpen(true);
-    };
-
-    const handleSignupClick = () => {
-        setIsLoginModalOpen(false);
-        setIsSignupModalOpen(true);
-    };
-
-    const handleLoginClick = () => {
-        setIsSignupModalOpen(false);
-        setIsLoginModalOpen(true);
     };
 
     return (
@@ -251,15 +219,10 @@ const BattleShipPage = () => {
                 isOpen={isLoginModalOpen}
                 onClose={() => setIsLoginModalOpen(false)}
                 onLogin={handleLogin}
-                onSignupClick={handleSignupClick}
-            />
-
-            {/* Signup Modal */}
-            <SignupModal
-                isOpen={isSignupModalOpen}
-                onClose={() => setIsSignupModalOpen(false)}
-                onLoginClick={handleLoginClick}
-                onSignup={handleSignup}
+                onSignupClick={() => {
+                    // TODO: Implement signup modal
+                    alert("Tính năng đăng ký sẽ được cập nhật sau");
+                }}
             />
 
         </HomeLayout>
