@@ -1,6 +1,5 @@
 "use client";
 import HomeLayout from "@/layouts/default";
-import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { playerCreateRoom } from "@/services/roomService";
@@ -13,6 +12,8 @@ import { CreateRoomModal } from "@/partials/battleship/home/create-room-modal";
 import { LoginModal } from "@/partials/auth/login-modal";
 import { Login } from "@/services/userService";
 import { extractErrorMessage } from "@/lib/utils";
+import { Bot, Globe, Users } from "lucide-react";
+import { toast } from "sonner";
 
 const GAME_ID = "battleship";
 
@@ -99,6 +100,14 @@ const BattleShipPage = () => {
         }
     };
 
+    const handlePlayWithAI = () => {
+        toast.info("Tính năng sẽ được cập nhật sau");
+    }
+
+    const handlePlayWithRandom = () => {
+        toast.info("Tính năng sẽ được cập nhật sau");
+    }
+
     return (
         <HomeLayout>
             <div className="mt-[1rem] ml-[1rem]">
@@ -115,22 +124,33 @@ const BattleShipPage = () => {
                             />
                         </div>
                         <div className="flex flex-col justify-between my-4 px-4 gap-6">
-                            <Button
+                            <button
+                                type="button"
                                 onClick={handleCreateRoomClick}
-                                variant="outline"
-                                className="flex items-center gap-4 p-[1.5rem]"
+                                className="flex items-center justify-center gap-4 p-[1.5rem] border bg-background shadow-xs rounded-md text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
                             >
-                                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" className="text-teal-600" viewBox="0 0 24 24"><path d="M12 4v16m8-8H4"/></svg>
-                                Create Room
-                            </Button>
-                            <Button variant="outline" className="flex items-center gap-4 p-[1.5rem]">
-                                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" className="text-blue-600" viewBox="0 0 24 24"><path d="M15 12H9m12 0A9 9 0 1 1 3 12a9 9 0 0 1 18 0Z"/></svg>
-                                Join Room
-                            </Button>
-                            <Button variant="outline" className="flex items-center gap-4 p-[1.5rem]">
-                                <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" className="text-gray-600" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M12 4v16m0 0H3"/></svg>
-                                How to Play
-                            </Button>
+                                <Users className="text-teal-600 dark:text-teal-400" size={23} strokeWidth={3} />
+                                Play with a friend
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handlePlayWithAI}
+                                className="flex items-center justify-center gap-4 p-[1.5rem] border bg-background shadow-xs rounded-md text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+                            >
+                                <Bot className="text-blue-600 dark:text-blue-400" size={23} strokeWidth={3} />
+                                Play with AI
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handlePlayWithRandom}
+                                className="flex items-center justify-center  gap-4 p-[1.5rem] border bg-background shadow-xs rounded-md text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
+                            >
+                                <Globe className="text-purple-600 dark:text-purple-400" size={23} strokeWidth={3} />
+                                <div className="flex flex-col items-start">
+                                    <span>Play Online</span>
+                                    <span>with a random player</span>
+                                </div>
+                            </button>
                         </div>
                     </Card>
                 </div>
