@@ -45,7 +45,7 @@ export function CreateRoomModal({ isOpen, onClose, onCreate }: CreateRoomModalPr
     >
       <div className="space-y-6">
           {/* Pannel User */}
-          <Card>
+          {/* <Card>
             <CardHeader>
               <CardTitle className="text-lg font-medium text-gray-900 dark:text-white">Pannel User</CardTitle>
             </CardHeader>
@@ -62,12 +62,12 @@ export function CreateRoomModal({ isOpen, onClose, onCreate }: CreateRoomModalPr
                 />
               </div>
             </CardContent>
-          </Card>
+          </Card> */}
 
           {/* Pannel Options */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg font-medium text-gray-900 dark:text-white">Pannel Options</CardTitle>
+              <CardTitle className="text-lg font-medium text-gray-900 dark:text-white">Options</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
             

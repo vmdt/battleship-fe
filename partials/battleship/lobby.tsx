@@ -5,6 +5,9 @@ import { useSocketStore } from "@/stores/socketStore";
 import { getRoom, kickRoomPlayer, updateRoomPlayer } from "@/services/roomService";
 import { Socket } from "socket.io-client";
 import { useRouter } from "next/navigation";
+import { InviteQR } from './lobby/invite-qr';
+import { useUserStore } from '@/stores/userStore';
+import { LoginModal } from '@/partials/auth/login-modal';
 
 export default function Lobby() {
   const [hasOpponent, setHasOpponent] = useState(false);
@@ -41,9 +44,7 @@ export default function Lobby() {
       return;
     }
 
-    const handleRoomJoined = async (payload: any) => {
-      console.log('Room joined event received:', payload);
-      
+    const handleRoomJoined = async (payload: any) => {   
       if (payload?.room_id) {
         try {
           const roomData = await getRoom(payload.room_id);
@@ -183,6 +184,7 @@ export default function Lobby() {
   // Nếu có 2 người chơi và người hiện tại là player 1, hiển thị lobby của player 1
   if (hasPlayerTwo && isPlayerOne) {
     return (
+    <>
       <div className="flex items-center justify-between w-full max-w-4xl mx-auto p-8 bg-white dark:bg-zinc-900 rounded-lg shadow-lg transition-colors">
         {/* Player 1 (Host) */}
         <div className="flex items-center w-1/4 min-h-[100px] flex-col justify-center">
@@ -266,12 +268,17 @@ export default function Lobby() {
           </div>
         </div>
       </div>
+      <div className="flex justify-center mt-6">
+        <InviteQR link={`https://battleship.example.com/invite/${getRoomFromStore()?.id}`} />
+      </div>
+    </>
     );
   }
 
   // Nếu có 2 người chơi và người hiện tại là player 2, hiển thị lobby của player 2
   if (hasPlayerTwo && isPlayerTwo) {
     return (
+    <>
       <div className="flex items-center justify-between w-full max-w-4xl mx-auto p-8 bg-white dark:bg-zinc-900 rounded-lg shadow-lg transition-colors">
         {/* Player 1 */}
         <div className="flex items-center w-1/4 min-h-[100px] flex-col justify-center">
@@ -342,11 +349,16 @@ export default function Lobby() {
           </div>
         </div>
       </div>
+      <div className="flex justify-center mt-6">
+        <InviteQR link={`https://battleship.example.com/invite/${getRoomFromStore()?.id}`} />
+      </div>
+    </>
     );
   }
 
   // Lobby mặc định khi chưa có đủ 2 người chơi
   return (
+    <>
     <div className="flex items-center justify-between w-full max-w-4xl mx-auto p-8 bg-white dark:bg-zinc-900 rounded-lg shadow-lg transition-colors">
       {/* Player 1 */}
       <div className="flex items-center w-1/4 min-h-[100px] flex-col justify-center">
@@ -436,5 +448,9 @@ export default function Lobby() {
         )}
       </div>
     </div>
+      <div className="flex items-center justify-center w-full max-w-4xl mx-auto p-8 bg-white dark:bg-zinc-900 rounded-lg shadow-lg mt-6">
+        <InviteQR link={`https://battleship.example.com/invite/${getRoomFromStore()?.id}`} />
+      </div>
+    </>
   );
 }

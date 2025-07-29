@@ -16,24 +16,44 @@ import { useBoardStore } from '@/stores/boardStore';
 import { createBattleShipBoard } from '@/services/battleshipService';
 import { BattleShipBoard } from '@/models';
 import { getBattleShipBoard } from '@/services/battleshipService';
+import { useUserStore } from '@/stores/userStore';
+import { LoginModal } from '@/partials/auth/login-modal';
+import { SignupModal } from '@/partials/auth/signup-modal';
+import { Login } from '@/services/userService';
+import { toast } from 'sonner';
+import { extractErrorMessage } from '@/lib/utils';
 
 export default function BattleShipPage() {
     const [phase, setPhase] = useState<'lobby' | 'setup' | 'battle'>('lobby');
     const [myBoard, setMyBoard] = useState<Square[][] | null>(null);
     const [myShips, setMyShips] = useState<Ship[] | null>(null);
     const [loading, setLoading] = useState(true);
-    const [showNameModal, setShowNameModal] = useState(false);
+    const [showLogin, setShowLogin] = useState(false);
+    const [showSignup, setShowSignup] = useState(false);
+    const [authLoading, setAuthLoading] = useState(false);
+    const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
     const [roomFull, setRoomFull] = useState(false);
     const [roomNotFound, setRoomNotFound] = useState(false);
-    const [playerName, setPlayerName] = useState("");
     const [battleBoardData, setBattleBoardData] = useState<BattleShipBoard | null>(null);
     const [battleLoading, setBattleLoading] = useState(false);
     
     const { connect, getSocket } = useSocketStore();
     const { setRoom, setRoomId, setPlayerOne, setMe, setPlayerTwo, getPlayerOne, getPlayerTwo, getMe, getRoom: getRoomStore } = useRoomStore();
     const { getPlacedShips } = useBoardStore();
+    const { isLogin, user, login } = useUserStore();
     const params = useParams();
     const roomId = params.room as string;
+
+    // Xử lý chuyển đổi giữa login và signup
+    const handleSwitchToSignup = () => {
+        setShowLogin(false);
+        setShowSignup(true);
+    };
+
+    const handleSwitchToLogin = () => {
+        setShowSignup(false);
+        setShowLogin(true);
+    };
 
     useEffect(() => {
         if (!getSocket('battleship')?.socket) {
@@ -53,87 +73,82 @@ export default function BattleShipPage() {
 
     }, [getSocket, connect]);
 
-    // Check room before mount
-    useEffect(() => {
-        const checkRoom = async () => {
-            if (!roomId) return;
-            try {
-                setLoading(true);
-                setRoomNotFound(false); // Reset error state
-                
-                // Delay 2 seconds before api calling
-                await new Promise(resolve => setTimeout(resolve, 2000));
-                
-                const roomData = await getRoom(roomId);
 
-                console.log('Room data:', roomData);
-                
-                if (roomData.room.id) {
-                    if (roomData.room.status === "lobby") {
-                        setPhase("lobby");
-                    } else if (roomData.room.status === "setup") {
-                        setPhase("setup");
-                    } else if (roomData.room.status === "battle") {
-                        setPhase("battle");
-                    }
-
-                    const playerCount = roomData.players.length;
-                    if (playerCount >= 2) {
-                        const playerOne = roomData.players.find(p => p.me === 1);
-                        const playerTwo = roomData.players.find(p => p.me === 2);
-                        setPlayerOne(playerOne || null);
-                        setPlayerTwo(playerTwo || null);
-                        // Just show full screen if current user is not player in room
-                        const currentMe = getMe();
-                        const hasPlayerOne = getPlayerOne();
-                        setMe(2);
-                        
-                        if (currentMe === 1 && hasPlayerOne) {
-                            setRoom(roomData.room);
-                            setRoomId(roomData.room.id);
-                            setRoomFull(false);
-                        } else if (currentMe === 2) {
-                            setRoom(roomData.room);
-                            setRoomId(roomData.room.id);
-                            setRoomFull(false);
-                        } else {
-                            // Current user is not a player in the room, show full screen
-                            setRoomFull(true);
-                        }
-                    } else if (playerCount === 1) {
-                        if (roomData.players[0].is_host && getPlayerOne()?.player.id === roomData.players[0].player_id && getMe() === 1) {
-                            setRoom(roomData.room);
-                            setRoomId(roomData.room.id);
-                            setPlayerOne(roomData.players[0]);
-                            setPlayerTwo(null);
-
-                            setMe(1); // I am player one
-                        } else {
-                            setMe(2); // I am player two
-                            setPlayerOne(roomData.players[0]);
-                            setPlayerTwo(null);
-                            setRoom(roomData.room);
-                            setRoomId(roomData.room.id);
-                            setShowNameModal(true);
-                        }
-                    } else {
-                        // Room is empty, show name modal
-                        setShowNameModal(true);
-                    }
-                } else {
-                    console.error('Room not found or invalid room ID');
-                    setRoomNotFound(true);
-                }
-            } catch (error) {
-                console.error('Error checking room:', error);
+    const checkAndJoinRoom = async () => {
+        if (!roomId) return;
+        try {
+            setLoading(true);
+            setRoomNotFound(false);
+            const roomData = await getRoom(roomId);
+            if (!roomData.room.id) {
                 setRoomNotFound(true);
-            } finally {
-                setLoading(false);
+                return;
             }
-        };
+            const playerCount = roomData.players.length;
+            if (playerCount >= 2) {
+                const playerOne = roomData.players.find(p => p.me === 1);
+                const playerTwo = roomData.players.find(p => p.me === 2);
+                const isPlayer = playerOne?.player.user_id === user?.id || playerTwo?.player.user_id === user?.id;
+                if (isPlayer) {
+                    setPlayerOne(playerOne || null);
+                    setPlayerTwo(playerTwo || null);
+                    setMe(playerOne?.player.user_id === user?.id ? 1 : 2);
+                    setRoom(roomData.room);
+                    setRoomId(roomData.room.id);
+                    setRoomFull(false);
+                } else {
+                    setRoomFull(true);
+                }
+            } else if (playerCount === 1) {
+                const playerOne = roomData.players[0];
+                const isPlayerInRoom = playerOne?.player_id === user?.id;
+                if (isPlayerInRoom) {
+                    setPlayerOne(playerOne);
+                    setPlayerTwo(null);
+                    setMe(playerOne.is_host ? 1 : 2);
+                    setRoom(roomData.room);
+                    setRoomId(roomData.room.id);
+                } else {
+                    const joinedPlayer = await joinRoom('battleship', roomData.room.id, user?.username || 'Guest', user?.id || null);
+                    setPlayerOne(playerOne);
+                    setPlayerTwo(joinedPlayer);
+                    setMe(2);
+                    setRoom(roomData.room);
+                    setRoomId(roomData.room.id);
+                    setHasJoinedRoom(true);
+                }
+            } else {
+                // Empty room
+                setPlayerOne(null);
+                setPlayerTwo(null);
+                setMe(1);
+                setRoom(roomData.room);
+                setRoomId(roomData.room.id);
+            }
 
-        checkRoom();
-    }, [roomId, setRoom, setRoomId, setPlayerOne, setPlayerTwo, getMe, getPlayerOne]);
+            if (roomData.room.status === "lobby") setPhase("lobby");
+            else if (roomData.room.status === "setup") setPhase("setup");
+            else if (roomData.room.status === "battle") setPhase("battle");
+
+        } catch (err) {
+            console.error(err);
+            setRoomNotFound(true);
+        } finally {
+            setLoading(false);
+            setShowLogin(false);
+            setShowSignup(false);
+        }
+    };
+
+    useEffect(() => {
+        if (!isLogin) {
+            setShowLogin(true);
+        } else {
+            setShowLogin(false);
+            setShowSignup(false);
+            checkAndJoinRoom();
+        }
+    }, [isLogin, user]);
 
     useEffect(() => {
         if (phase === 'battle') {
@@ -156,21 +171,40 @@ export default function BattleShipPage() {
         }
     }, [phase, getRoomStore, getMe, getPlayerOne, getPlayerTwo]);
 
-    const handleJoinRoom = async () => {
-        const data = await joinRoom('battleship', roomId, playerName, null);
-        console.log('Join room data:', data);
-        const socket = getSocket('battleship')?.socket as Socket;
-        if (!socket) {
-            alert('Socket connection failed');
-            return;
+    // Xử lý đăng nhập
+    const handleLogin = async (email: string, password: string) => {
+        setAuthLoading(true);
+        try {
+            const response = await Login({ email, password });
+            login(response.user, response.tokens);
+            setShowLogin(false);
+        } catch (error: any) {
+            throw Error("Login failed"); 
+        } finally {
+            setAuthLoading(false);
         }
+    };
 
-        socket.on("room:joined", (payload) => {
-            if (payload?.room_id) {
-                setPlayerTwo(data);
-                setShowNameModal(false);
-            }
-        })
+    const handleSignup = async (username: string, email: string, password: string) => {
+        // setAuthLoading(true);
+        // await new Promise(resolve => setTimeout(resolve, 1000));
+        // const mockUser = {
+        //     id: 'dbe1fcdc-cbbc-4312-a3a9-7bfb6aa4ef96',
+        //     user_name: username,
+        //     email,
+        //     nation: 'VN',
+        //     avatar: '',
+        //     created_at: new Date().toISOString(),
+        //     updated_at: new Date().toISOString()
+        // };
+        // const mockTokens = {
+        //     access_token: 'mock-access-token',
+        //     refresh_token: 'mock-refresh-token',
+        //     expires_in: 3600
+        // };
+        // login(mockUser, mockTokens);
+        // setAuthLoading(false);
+        // setShowSignup(false);
     };
 
     const handleStartGame = (player: number) => {
@@ -184,58 +218,73 @@ export default function BattleShipPage() {
         createBattleShipBoard(payload);
     };
 
-    if (loading) {
         return (
             <HomeLayout>
+            {/* Modal login nếu chưa đăng nhập - luôn render ở đầu */}
+            <LoginModal
+                isOpen={showLogin}
+                onClose={() => {
+                    console.log('Login modal close clicked');
+                    // Không cho phép đóng modal nếu chưa login
+                }}
+                onSignupClick={handleSwitchToSignup}
+                onLogin={handleLogin}
+                isLoading={authLoading}
+            />
+            
+            {/* Modal signup */}
+            <SignupModal
+                isOpen={showSignup}
+                onClose={() => {
+                    console.log('Signup modal close clicked');
+                    // Không cho phép đóng modal nếu chưa login
+                }}
+                onLoginClick={handleSwitchToLogin}
+                onSignup={handleSignup}
+                isLoading={authLoading}
+            />
+            
+            {/* Chỉ hiển thị nội dung game khi đã login hoặc đang loading */}
+            {loading ? (
                 <div className="flex items-center justify-center min-h-screen">
-                    <div className="text-lg">Đang kiểm tra phòng...</div>
+                    <div className="text-lg">Đang tải...</div>
                 </div>
-            </HomeLayout>
-        );
-    }
-
-    if (roomNotFound) {
-        return (
-            <HomeLayout>
+            ) : roomNotFound ? (
                 <div className="flex items-center justify-center min-h-screen">
                     <div className="text-center">
-                        <h2 className="text-2xl font-bold mb-4 text-red-600">Phòng không tồn tại</h2>
-                        <p className="text-gray-600 mb-4">Phòng bạn đang tìm kiếm không tồn tại hoặc đã bị xóa.</p>
-                        <button 
-                            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition"
-                            onClick={() => window.history.back()}
-                        >
-                            Quay lại
-                        </button>
+                        <h2 className="text-2xl font-bold mb-4">Không tìm thấy phòng</h2>
+                        <p className="text-gray-600">Phòng này không tồn tại hoặc đã bị xóa.</p>
                     </div>
                 </div>
-            </HomeLayout>
-        );
-    }
-
-    if (roomFull) {
-        return (
-            <HomeLayout>
+            ) : roomFull ? (
                 <div className="flex items-center justify-center min-h-screen">
                     <div className="text-center">
                         <h2 className="text-2xl font-bold mb-4">Phòng đã đầy</h2>
                         <p className="text-gray-600">Phòng này đã có đủ 2 người chơi.</p>
                     </div>
                 </div>
-            </HomeLayout>
-        );
-    }
-
-    if (phase === 'battle') {
-        if (battleLoading || !battleBoardData) {
-            return (
-                <HomeLayout>
+            ) : (
+                <>
+                    {phase === 'lobby' && <Lobby />}
+                    {phase === 'setup' && (
+                        <ShipBoard
+                            onStart={(board: Square[][], ships: Ship[], callback?: Function) => {
+                                setMyBoard(board);
+                                setMyShips(ships);
+                                handleStartGame(getMe());
+                                callback && callback();
+                            }}
+                            setPhase={setPhase}
+                        />
+                    )}
+                    {phase === 'battle' && (
+                        <>
+                            {battleLoading || !battleBoardData ? (
                     <div className="flex items-center justify-center min-h-screen">
                         <div className="text-lg">Đang tải dữ liệu trận đấu...</div>
                     </div>
-                </HomeLayout>
-            );
-        }
+                            ) : (
+                                (() => {
         // Mapping ships vào myBoard
         const myBoard: import('@/models/game').Square[][] = Array(10).fill(null).map(() => Array(10).fill(null).map(() => ({ status: 'empty' as const, hover: false })));
         battleBoardData.ships.forEach(ship => {
@@ -272,56 +321,12 @@ export default function BattleShipPage() {
             positions: ship.positions,
             position: ship.positions[0] || undefined,
         }));
-        return (
-            <HomeLayout>
-                <BattleBoard myBoardInit={myBoard} myShipsInit={shipsForBoard} opponentBoardInit={opponentBoard} />
-            </HomeLayout>
-        );
-    }
-
-    return (
-        <HomeLayout>
-            {/* Modal nhập tên */}
-            {showNameModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
-                    <div className="bg-white dark:bg-gray-800 p-6 rounded shadow-lg w-80">
-                        <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Nhập tên người chơi</h2>
-                        <input
-                            className="w-full px-3 py-2 border rounded mb-4 text-black"
-                            placeholder="Tên của bạn"
-                            value={playerName}
-                            onChange={e => setPlayerName(e.target.value)}
-                            autoFocus
-                        />
-                        <div className="flex justify-end gap-2">
-                            <button 
-                                className="px-4 py-2 border rounded hover:bg-gray-100"
-                                onClick={() => setShowNameModal(false)}
-                            >
-                                Hủy
-                            </button>
-                            <button
-                                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                                onClick={handleJoinRoom}
-                                disabled={!playerName.trim()}
-                            >
-                                Tham gia
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
-            {phase === 'lobby' && <Lobby />}
-            {phase === 'setup' && (
-                <ShipBoard
-                    onStart={(board: Square[][], ships: Ship[], callback?: Function) => {
-                        setMyBoard(board);
-                        setMyShips(ships);
-                        handleStartGame(getMe());
-                        callback && callback();
-                    }}
-                    setPhase={setPhase}
-                />
+                                    return <BattleBoard myBoardInit={myBoard} myShipsInit={shipsForBoard} opponentBoardInit={opponentBoard} />;
+                                })()
+                            )}
+                        </>
+                    )}
+                </>
             )}
         </HomeLayout>
     );

@@ -1,23 +1,22 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  avatar?: string;
-}
+import { User, Tokens } from "@/models/user";
 
 interface UserStore {
   user: User | null;
   isLogin: boolean;
-  token: string | null;
+  tokens: Tokens | null;
   
   // Actions
-  login: (user: User, token: string) => void;
+  login: (user: User, tokens: Tokens) => void;
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
-  setToken: (token: string) => void;
+  setTokens: (tokens: Tokens) => void;
+  updateTokens: (tokens: Partial<Tokens>) => void;
+  
+  // Getters
+  getAccessToken: () => string | null;
+  getRefreshToken: () => string | null;
 }
 
 export const useUserStore = create<UserStore>()(
@@ -25,13 +24,13 @@ export const useUserStore = create<UserStore>()(
     (set, get) => ({
       user: null,
       isLogin: false,
-      token: null,
+      tokens: null,
 
-      login: (user: User, token: string) => {
+      login: (user: User, tokens: Tokens) => {
         set({
           user,
           isLogin: true,
-          token,
+          tokens,
         });
       },
 
@@ -39,7 +38,7 @@ export const useUserStore = create<UserStore>()(
         set({
           user: null,
           isLogin: false,
-          token: null,
+          tokens: null,
         });
       },
 
@@ -52,8 +51,25 @@ export const useUserStore = create<UserStore>()(
         }
       },
 
-      setToken: (token: string) => {
-        set({ token });
+      setTokens: (tokens: Tokens) => {
+        set({ tokens });
+      },
+
+      updateTokens: (tokensData: Partial<Tokens>) => {
+        const currentTokens = get().tokens;
+        if (currentTokens) {
+          set({
+            tokens: { ...currentTokens, ...tokensData },
+          });
+        }
+      },
+
+      getAccessToken: () => {
+        return get().tokens?.access_token || null;
+      },
+
+      getRefreshToken: () => {
+        return get().tokens?.refresh_token || null;
       },
     }),
     {

@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { extractErrorMessage } from "@/lib/utils";
 
 type LoginModalProps = {
   isOpen: boolean;
@@ -12,6 +13,7 @@ type LoginModalProps = {
   onSignupClick: () => void;
   onLogin: (email: string, password: string) => void;
   onGoogleLogin?: () => void;
+  isLoading?: boolean;
 };
 
 export function LoginModal({ 
@@ -19,27 +21,32 @@ export function LoginModal({
   onClose, 
   onSignupClick, 
   onLogin,
-  onGoogleLogin 
+  onGoogleLogin,
+  isLoading = false
 }: LoginModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingInternal, setIsLoadingInternal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(""); // Clear previous error
+    
     if (!email.trim() || !password.trim()) {
-      alert("Vui lòng nhập đầy đủ thông tin");
+      setErrorMessage("Vui lòng nhập đầy đủ thông tin");
       return;
     }
     
-    setIsLoading(true);
+    setIsLoadingInternal(true);
     try {
       await onLogin(email, password);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login failed:", error);
+      setErrorMessage(extractErrorMessage(error));
     } finally {
-      setIsLoading(false);
+      setIsLoadingInternal(false);
     }
   };
 
@@ -48,12 +55,16 @@ export function LoginModal({
     alert("Tính năng quên mật khẩu sẽ được cập nhật sau");
   };
 
+  // Sử dụng isLoading từ prop hoặc internal state
+  const isFormLoading = isLoading || isLoadingInternal;
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
       title="Đăng nhập"
       closeOnBackdropClick={false}
+      backdropType="blur"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Email Input */}
@@ -66,9 +77,13 @@ export function LoginModal({
               type="email"
               placeholder="Nhập email của bạn"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errorMessage) setErrorMessage(""); // Clear error when user types
+              }}
               className="pl-10"
               required
+              disabled={isFormLoading}
             />
           </div>
         </div>
@@ -83,18 +98,32 @@ export function LoginModal({
               type={showPassword ? "text" : "password"}
               placeholder="Nhập mật khẩu"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="pl-10 pr-10"
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errorMessage) setErrorMessage(""); // Clear error when user types
+              }}
+              className={`pl-10 pr-10`}
               required
+              disabled={isFormLoading}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              disabled={isFormLoading}
             >
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
+          {/* Error Message */}
+          {errorMessage && (
+            <div className="error-message">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              {errorMessage}
+            </div>
+          )}
         </div>
 
         {/* Forgot Password Link */}
@@ -103,6 +132,7 @@ export function LoginModal({
             type="button"
             onClick={handleForgotPassword}
             className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+            disabled={isFormLoading}
           >
             Quên mật khẩu?
           </button>
@@ -112,9 +142,9 @@ export function LoginModal({
         <Button 
           type="submit" 
           className="w-full" 
-          disabled={isLoading}
+          disabled={isFormLoading}
         >
-          {isLoading ? "Đang đăng nhập..." : "Đăng nhập"}
+          {isFormLoading ? "Đang đăng nhập..." : "Đăng nhập"}
         </Button>
 
         {/* Divider */}
@@ -134,6 +164,7 @@ export function LoginModal({
             variant="outline"
             onClick={onGoogleLogin}
             className="w-full"
+            disabled={isFormLoading}
           >
             <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
               <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -154,6 +185,7 @@ export function LoginModal({
             alert("Tính năng đăng nhập Google sẽ được cập nhật sau");
           }}
           className="w-full"
+          disabled={isFormLoading}
         >
           <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24">
             <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -173,6 +205,7 @@ export function LoginModal({
             type="button"
             onClick={onSignupClick}
             className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
+            disabled={isFormLoading}
           >
             Đăng ký ngay
           </button>

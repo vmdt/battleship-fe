@@ -12,10 +12,51 @@ import { Socket } from 'socket.io-client';
 import { useRoomStore } from '@/stores/roomStore';
 import { RoomPlayerStatus } from '@/models/player';
 import { updateRoomStatus } from "@/services/roomService"
+import { Chat } from '../chat/chat';
 
 interface ShipBoardProps {
     onStart?: (board: Square[][], ships: Ship[], callback: Function) => void;
     setPhase?: (phase: 'lobby' | 'setup' | 'battle') => void;
+}
+
+// Hàm render header cho chatbox (không có turn/timer)
+function renderHeaderForChat() {
+  const defaultAvatar = '/assets/images/battleship-logo.png';
+  // TODO: Lấy playerOne, playerTwo, opponentDisconnected từ store nếu muốn dynamic
+  return (
+    <div className="w-full flex flex-row items-center justify-center gap-4 py-3 px-4 bg-white/90 dark:bg-gray-900/90 rounded-xl shadow border mb-2">
+      {/* Player 1 */}
+      <div className="flex flex-col items-center min-w-[70px]">
+        <img
+          src={defaultAvatar}
+          alt="avatar1"
+          className="w-10 h-10 rounded-full border-2 border-blue-400 object-cover"
+        />
+        <span className="mt-1 text-sm font-semibold text-gray-800 dark:text-gray-100 max-w-[70px] truncate text-center">Player 1</span>
+        <span className="flex items-center mt-1">
+          <span className={`w-2.5 h-2.5 rounded-full mr-1 bg-green-500`}></span>
+          <span className="text-xs text-gray-500">Connected</span>
+        </span>
+      </div>
+      {/* VS */}
+      <div className="flex flex-col items-center mx-2 min-w-[90px]">
+        <span className="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-red-500 text-white text-lg font-extrabold shadow border-2 border-white dark:border-gray-800 mb-1">VS</span>
+      </div>
+      {/* Player 2 */}
+      <div className="flex flex-col items-center min-w-[70px]">
+        <img
+          src={defaultAvatar}
+          alt="avatar2"
+          className="w-10 h-10 rounded-full border-2 border-red-400 object-cover"
+        />
+        <span className="mt-1 text-sm font-semibold text-gray-800 dark:text-gray-100 max-w-[70px] truncate text-center">Player 2</span>
+        <span className="flex items-center mt-1">
+          <span className={`w-2.5 h-2.5 rounded-full mr-1 bg-green-500`}></span>
+          <span className="text-xs text-gray-500">Connected</span>
+        </span>
+      </div>
+    </div>
+  );
 }
 
 const ShipBoard = ({ onStart, setPhase }: ShipBoardProps) => {
@@ -288,99 +329,106 @@ const ShipBoard = ({ onStart, setPhase }: ShipBoardProps) => {
     const shipsLeft = ships.filter(s => !s.placed).length;
 
     return (
-        <div className="flex flex-col items-center gap-4 p-6">
-            <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
-                Place Your Ships
-            </h2>
-            {/* Hiển thị số thuyền còn lại */}
-            <div className="mb-2 text-base font-semibold text-blue-600 dark:text-blue-400">
-                Số thuyền còn lại: {shipsLeft}
-            </div>
-            
-            {/* Instructions */}
-            <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                <div className="flex items-center gap-4 mb-2">
-                    <p>Press <kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">R</kbd> to rotate ship</p>
-                    <button
-                        onClick={handleRotate}
-                        className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors text-sm font-medium"
-                    >
-                        Rotate Ship
-                    </button>
+        <div className="flex flex-col md:flex-row w-full h-full">
+            {/* Cột trái: Ship board */}
+            <div className="flex-1 flex flex-col items-center justify-center">
+                <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
+                    Place Your Ships
+                </h2>
+                {/* Hiển thị số thuyền còn lại */}
+                <div className="mb-2 text-base font-semibold text-blue-600 dark:text-blue-400">
+                    Số thuyền còn lại: {shipsLeft}
                 </div>
-                <p>Current ship: {ships[currentShipIndex]?.size || 'All placed'} units</p>
-                <p>Orientation: {orientation}</p>
-            </div>
-            
-            {/* Column labels (A-J) */}
-            <div className="flex gap-1 ml-8">
-                {Array.from({ length: BOARD_SIZE }, (_, i) => (
-                    <div key={i} className="w-8 h-6 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-400">
-                        {String.fromCharCode(65 + i)}
+                {/* Instructions */}
+                <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                    <div className="flex items-center gap-4 mb-2">
+                        <p>Press <kbd className="px-2 py-1 bg-gray-200 dark:bg-gray-700 rounded">R</kbd> to rotate ship</p>
+                        <button
+                            onClick={handleRotate}
+                            className="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-md transition-colors text-sm font-medium"
+                        >
+                            Rotate Ship
+                        </button>
                     </div>
-                ))}
-            </div>
-            
-            {/* Board grid */}
-            <div className="flex">
-                {/* Row labels (1-10) */}
-                <div className="flex flex-col gap-1 mr-2">
-                    {Array.from({ length: BOARD_SIZE }, (_, i) => (
-                        <div key={i} className="w-6 h-8 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-400">
-                            {i + 1}
+                    <p>Current ship: {ships[currentShipIndex]?.size || 'All placed'} units</p>
+                    <p>Orientation: {orientation}</p>
+                </div>
+                {/* Board + labels với background xanh */}
+                <div className="bg-[#699BF7] dark:bg-[#699BF7]/80 rounded-lg shadow-md p-2 flex flex-col items-center border-2 border-white dark:border-gray-800">
+                    {/* Column labels (A-J) */}
+                    <div className="flex gap-1 ml-8">
+                        {Array.from({ length: BOARD_SIZE }, (_, i) => (
+                            <div key={i} className="w-12 h-12 flex items-center justify-center text-lg font-medium text-gray-600 dark:text-gray-600">
+                                {String.fromCharCode(65 + i)}
+                            </div>
+                        ))}
+                    </div>
+                    {/* Board grid */}
+                    <div className="flex">
+                        {/* Row labels (1-10) */}
+                        <div className="flex flex-col gap-1 mr-2">
+                            {Array.from({ length: BOARD_SIZE }, (_, i) => (
+                                <div key={i} className="w-12 h-12 flex items-center justify-center text-lg font-medium text-gray-600 dark:text-gray-600">
+                                    {i + 1}
+                                </div>
+                            ))}
                         </div>
-                    ))}
+                        {/* Board squares */}
+                        <div 
+                            className={`grid grid-cols-10 gap-1 ${waitingOther ? 'cursor-not-allowed opacity-70' : ''}`}
+                            onMouseLeave={handleMouseLeave}
+                        >
+                            {board.map((row, x) =>
+                                row.map((square, y) => (
+                                    <div key={`${x}-${y}`} className={waitingOther ? 'cursor-not-allowed' : ''}>
+                                        <ShipSquare
+                                            square={square}
+                                            position={{ x, y }}
+                                            onClick={() => handleSquareClick(x, y)}
+                                            onHover={() => handleSquareHover(x, y)}
+                                            size="lg"
+                                        />
+                                    </div>
+                                ))
+                            )}
+                        </div>
+                    </div>
                 </div>
                 
-                {/* Board squares */}
-                <div 
-                    className={`grid grid-cols-10 gap-1 ${waitingOther ? 'cursor-not-allowed opacity-70' : ''}`}
-                    onMouseLeave={handleMouseLeave}
+                {/* Legend */}
+                <div className="flex gap-6 mt-4 text-sm text-gray-600 dark:text-gray-400">
+                    <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-gray-600 dark:bg-gray-500 rounded"></div>
+                        <span>Ship</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-green-300 dark:bg-green-600 rounded"></div>
+                        <span>Preview</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded"></div>
+                        <span>Empty</span>
+                    </div>
+                </div>
+                {/* Start button: luôn hiển thị, disable khi chưa đặt xong hoặc đang chờ */}
+                {waitingOther && (
+                    <div className="mt-4 text-yellow-600 dark:text-yellow-400 font-semibold animate-pulse">
+                        Waiting for other player...
+                    </div>
+                )}
+                <button
+                    className={`mt-6 px-6 py-2 rounded-lg text-lg font-semibold shadow transition-colors \
+                        ${shipsLeft === 0 && !waitingOther ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-400 text-gray-200 cursor-not-allowed'}`}
+                    onClick={() => onStart?.(board, ships, handleCallBackStart)}
+                    disabled={shipsLeft > 0 || waitingOther}
                 >
-                    {board.map((row, x) =>
-                        row.map((square, y) => (
-                            <div key={`${x}-${y}`} className={waitingOther ? 'cursor-not-allowed' : ''}>
-                                <ShipSquare
-                                    square={square}
-                                    position={{ x, y }}
-                                    onClick={() => handleSquareClick(x, y)}
-                                    onHover={() => handleSquareHover(x, y)}
-                                />
-                            </div>
-                        ))
-                    )}
-                </div>
+                    Start
+                </button>
             </div>
-            
-            {/* Legend */}
-            <div className="flex gap-6 mt-4 text-sm text-gray-600 dark:text-gray-400">
-                <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-gray-600 dark:bg-gray-500 rounded"></div>
-                    <span>Ship</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-green-300 dark:bg-green-600 rounded"></div>
-                    <span>Preview</span>
-                </div>
-                <div className="flex items-center gap-2">
-                    <div className="w-4 h-4 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded"></div>
-                    <span>Empty</span>
-                </div>
+            {/* Cột phải: Chatbox */}
+            <div className="w-full max-w-md flex flex-col items-center justify-start mt-8">
+                <Chat header={renderHeaderForChat()} />
             </div>
-            {/* Start button: luôn hiển thị, disable khi chưa đặt xong hoặc đang chờ */}
-            {waitingOther && (
-                <div className="mt-4 text-yellow-600 dark:text-yellow-400 font-semibold animate-pulse">
-                    Waiting for other player...
-                </div>
-            )}
-            <button
-                className={`mt-6 px-6 py-2 rounded-lg text-lg font-semibold shadow transition-colors \
-                    ${shipsLeft === 0 && !waitingOther ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-400 text-gray-200 cursor-not-allowed'}`}
-                onClick={() => onStart?.(board, ships, handleCallBackStart)}
-                disabled={shipsLeft > 0 || waitingOther}
-            >
-                Start
-            </button>
         </div>
     );
 };

@@ -23,9 +23,9 @@ const ShipSquare = ({ square, position, onClick, onHover, size = 'md' }: ShipSqu
         
         switch (square.status) {
             case 'empty':
-                return `${baseClasses} ${sizeClasses} bg-white dark:bg-gray-800 hover:bg-blue-100 dark:hover:bg-gray-700`;
+                return `${baseClasses} ${sizeClasses} bg-white hover:bg-blue-100`;
             case 'ship':
-                return `${baseClasses} ${sizeClasses} bg-white dark:bg-gray-800`;
+                return `${baseClasses} ${sizeClasses} bg-white`;
             case 'hit-all':
                 return `${baseClasses} ${sizeClasses} bg-transparent border-red-500 dark:border-red-600 hover:bg-red-100 dark:hover:bg-red-700`;
             case 'hit':
@@ -72,7 +72,7 @@ const ShipSquare = ({ square, position, onClick, onHover, size = 'md' }: ShipSqu
                     <img
                         src="/assets/animations/fire.gif"
                         alt="fire-effect"
-                        className="absolute inset-0 z-20 w-full h-full object-contain pointer-events-none"
+                        className="absolute inset-0 z-3 w-full h-full object-contain pointer-events-none"
                     />
                 </div>
             );
@@ -93,7 +93,7 @@ const ShipSquare = ({ square, position, onClick, onHover, size = 'md' }: ShipSqu
                     <img
                         src="/assets/animations/fire.gif"
                         alt="fire-effect"
-                        className="absolute inset-0 z-20 w-full h-full object-contain pointer-events-none"
+                        className="absolute inset-0 z-3 w-full h-full object-contain pointer-events-none"
                     />
                 </div>
             )
