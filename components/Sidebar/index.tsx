@@ -25,6 +25,8 @@ import { useSettingStore } from '@/stores/settingStore'
 import { useUserStore } from '@/stores/userStore'
 import { LoginModal } from '@/partials/auth/login-modal'
 import { SignupModal } from '@/partials/auth/signup-modal'
+import { Login } from '@/services/userService'
+import { extractErrorMessage } from '@/lib/utils'
 
 const menuItems = [
   { icon: MessageCircle, label: 'Nhắn tin' },
@@ -56,20 +58,15 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const isEffectivelyCollapsed = !isMobile && isMenuCollapsed;
 
   const handleLogin = async (email: string, password: string) => {
-    // TODO: Implement actual login API call
-    console.log('Login attempt:', email, password);
-    
-    // Mock login for now
-    const mockUser = {
-      id: '1',
-      name: 'Dat',
-      email: email,
-      avatar: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Dat'
-    };
-    const mockToken = 'mock-token-123';
-    
-    login(mockUser, mockToken);
-    setIsLoginModalOpen(false);
+    try {
+      const response = await Login({ email, password });
+      login(response.user, response.tokens);
+      setIsLoginModalOpen(false);
+    } catch (error: any) {
+      console.error('Login error:', error);
+      // Error will be handled by LoginModal component
+      throw error; // Re-throw to let LoginModal handle it
+    }
   };
 
   const handleLogout = () => {
@@ -83,13 +80,20 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     // Mock signup for now
     const mockUser = {
       id: '2',
-      name: username,
+      user_name: username,
       email: email,
-      avatar: 'https://api.dicebear.com/9.x/adventurer/svg?seed=' + username
+      nation: 'VN',
+      avatar: 'https://api.dicebear.com/9.x/adventurer/svg?seed=' + username,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
     };
-    const mockToken = 'mock-token-456';
+    const mockTokens = {
+      access_token: 'mock-access-token',
+      refresh_token: 'mock-refresh-token',
+      expires_in: 3600
+    };
     
-    login(mockUser, mockToken);
+    // login(mockUser, mockTokens);
     setIsSignupModalOpen(false);
   };
 
@@ -137,12 +141,12 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <>
                 <img
                   src={user?.avatar || "https://api.dicebear.com/9.x/adventurer/svg?seed=User"}
-                  alt={user?.name || "User"}
+                  alt={user?.username || "User"}
                   className="w-10 h-10 rounded-full border-2 border-gray-200 dark:border-gray-600"
                 />
                 {!isEffectivelyCollapsed && (
                   <div className="leading-tight">
-                    <p className="text-sm font-medium">{user?.name || "User"}</p>
+                    <p className="text-sm font-medium">{user?.username || "User"}</p>
                     <p className="text-xs text-muted-foreground">2000 🪙</p>
                   </div>
                 )}

@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { extractErrorMessage } from "@/lib/utils";
 
 type LoginModalProps = {
   isOpen: boolean;
@@ -27,19 +28,23 @@ export function LoginModal({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoadingInternal, setIsLoadingInternal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(""); // Clear previous error
+    
     if (!email.trim() || !password.trim()) {
-      alert("Vui lòng nhập đầy đủ thông tin");
+      setErrorMessage("Vui lòng nhập đầy đủ thông tin");
       return;
     }
     
     setIsLoadingInternal(true);
     try {
       await onLogin(email, password);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login failed:", error);
+      setErrorMessage(extractErrorMessage(error));
     } finally {
       setIsLoadingInternal(false);
     }
@@ -59,6 +64,7 @@ export function LoginModal({
       onClose={onClose}
       title="Đăng nhập"
       closeOnBackdropClick={false}
+      backdropType="blur"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Email Input */}
@@ -71,7 +77,10 @@ export function LoginModal({
               type="email"
               placeholder="Nhập email của bạn"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errorMessage) setErrorMessage(""); // Clear error when user types
+              }}
               className="pl-10"
               required
               disabled={isFormLoading}
@@ -89,8 +98,11 @@ export function LoginModal({
               type={showPassword ? "text" : "password"}
               placeholder="Nhập mật khẩu"
               value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="pl-10 pr-10"
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errorMessage) setErrorMessage(""); // Clear error when user types
+              }}
+              className={`pl-10 pr-10`}
               required
               disabled={isFormLoading}
             />
@@ -103,6 +115,15 @@ export function LoginModal({
               {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </button>
           </div>
+          {/* Error Message */}
+          {errorMessage && (
+            <div className="error-message">
+              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+              </svg>
+              {errorMessage}
+            </div>
+          )}
         </div>
 
         {/* Forgot Password Link */}

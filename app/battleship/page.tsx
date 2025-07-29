@@ -11,6 +11,8 @@ import { RoomModel, RoomPlayerModel } from "@/models";
 import { Card } from "@/components/ui/card";
 import { CreateRoomModal } from "@/partials/battleship/home/create-room-modal";
 import { LoginModal } from "@/partials/auth/login-modal";
+import { Login } from "@/services/userService";
+import { extractErrorMessage } from "@/lib/utils";
 
 const GAME_ID = "battleship";
 
@@ -84,23 +86,17 @@ const BattleShipPage = () => {
     };
 
     const handleLogin = async (email: string, password: string) => {
-        // TODO: Implement actual login API call
-        console.log('Login attempt:', email, password);
-        
-        // Mock login for now
-        const mockUser = {
-            id: '1',
-            name: 'Dat',
-            email: email,
-            avatar: 'https://api.dicebear.com/9.x/adventurer/svg?seed=Dat'
-        };
-        const mockToken = 'mock-token-123';
-        
-        login(mockUser, mockToken);
-        setIsLoginModalOpen(false);
-        
-        // Auto open create room modal after login
-        setIsCreateModalOpen(true);
+        try {
+            const response = await Login({ email, password });
+            login(response.user, response.tokens);
+            setIsLoginModalOpen(false);
+            // Auto open create room modal after login
+            setIsCreateModalOpen(true);
+        } catch (error: any) {
+            console.error('Login error:', error);
+            // Error will be handled by LoginModal component
+            throw error; // Re-throw to let LoginModal handle it
+        }
     };
 
     return (
@@ -139,7 +135,7 @@ const BattleShipPage = () => {
                     </Card>
                 </div>
                 <div className="flex-[1.5]">
-                    <Card className="w-full bg-teal-100 dark:bg-[#2c3e50] rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-shadow p-2">
+                    <Card className="w-full bg-zinc-100 dark:bg-[#2c3e50] rounded-2xl overflow-hidden shadow-md hover:shadow-lg transition-shadow p-2">
                         <div className="p-4">
                             <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4 flex items-center gap-2">
                                 <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" className="text-yellow-500" viewBox="0 0 24 24">

@@ -13,6 +13,7 @@ interface ModalProps {
   className?: string;
   contentClassName?: string;
   closeOnBackdropClick?: boolean;
+  backdropType?: "default" | "solid" | "blur";
 }
 
 export function Modal({ 
@@ -24,7 +25,8 @@ export function Modal({
   showCloseButton = true,
   className,
   contentClassName,
-  closeOnBackdropClick = true
+  closeOnBackdropClick = true,
+  backdropType = "default"
 }: ModalProps) {
   if (!isOpen) return null;
 
@@ -34,9 +36,18 @@ export function Modal({
     }
   };
 
+  let backdropClass = "";
+  if (backdropType === "solid") {
+    backdropClass = "modal-backdrop-solid";
+  } else if (backdropType === "blur") {
+    backdropClass = "modal-backdrop-blur";
+  } else {
+    backdropClass = "modal-backdrop-default";
+  }
+
   return (
     <div 
-      className={cn("fixed inset-0 bg-black/20 flex items-center justify-center z-50", className)}
+      className={cn("fixed inset-0 flex items-center justify-center z-50", backdropClass, className)}
       onClick={handleBackdropClick}
     >
       <div className={cn("bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md mx-4", contentClassName)}>

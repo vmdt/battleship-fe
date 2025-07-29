@@ -128,3 +128,122 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Custom toast styles */
+.toaster {
+  z-index: 99999 !important;
+  position: fixed !important;
+  top: 1rem !important;
+  right: 1rem !important;
+}
+
+.toaster [data-sonner-toast] {
+  z-index: 99999 !important;
+}
+
+.toaster [data-sonner-toast][data-type="error"] {
+  --toast-bg: hsl(0 84% 60% / 0.1) !important;
+  --toast-border: hsl(0 84% 60% / 0.2) !important;
+  --toast-text: hsl(0 84% 60%) !important;
+}
+
+.toaster [data-sonner-toast][data-type="error"] [data-description] {
+  color: hsl(0 84% 60%) !important;
+}
+
+.toaster [data-sonner-toast][data-type="error"] [data-icon] {
+  color: hsl(0 84% 60%) !important;
+}
+
+/* Dark mode toast error styles */
+.dark .toaster [data-sonner-toast][data-type="error"] {
+  --toast-bg: hsl(0 84% 60% / 0.15) !important;
+  --toast-border: hsl(0 84% 60% / 0.3) !important;
+}
+
+/* Ensure toast appears above all other elements */
+.toaster [data-sonner-toaster] {
+  z-index: 99999 !important;
+  position: fixed !important;
+  top: 1rem !important;
+  right: 1rem !important;
+}
+
+/* Toast animation and styling */
+.toaster [data-sonner-toast] {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  z-index: 99999 !important;
+}
+
+/* Ensure toast appears above all modals and backdrops */
+.toaster,
+.toaster *,
+.toaster [data-sonner-toast],
+.toaster [data-sonner-toaster],
+.toaster [data-sonner-toast] * {
+  z-index: 99999 !important;
+}
+
+/* Override any modal z-index */
+[data-sonner-toast] {
+  z-index: 99999 !important;
+  position: relative !important;
+}
+
+/* Ensure toast portal is above everything */
+[data-sonner-toaster] {
+  z-index: 99999 !important;
+  position: fixed !important;
+}
+
+/* Success toast styling */
+.toaster [data-sonner-toast][data-type="success"] {
+  --toast-bg: hsl(142 76% 36% / 0.1) !important;
+  --toast-border: hsl(142 76% 36% / 0.2) !important;
+  --toast-text: hsl(142 76% 36%) !important;
+}
+
+.toaster [data-sonner-toast][data-type="success"] [data-description] {
+  color: hsl(142 76% 36%) !important;
+}
+
+.toaster [data-sonner-toast][data-type="success"] [data-icon] {
+  color: hsl(142 76% 36%) !important;
+}
+
+/* Form error styling */
+.input-error {
+  border-color: hsl(0 84% 60%) !important;
+  box-shadow: 0 0 0 1px hsl(0 84% 60% / 0.2) !important;
+}
+
+.input-error:focus {
+  border-color: hsl(0 84% 60%) !important;
+  box-shadow: 0 0 0 2px hsl(0 84% 60% / 0.2) !important;
+}
+
+.error-message {
+  color: hsl(0 84% 60%);
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Modal backdrop types */
+.modal-backdrop-default {
+  background: rgba(0,0,0,0.2);
+}
+
+.modal-backdrop-solid {
+  background: rgba(0,0,0,0.7);
+}
+
+.modal-backdrop-blur {
+  background: rgba(0,0,0,0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}

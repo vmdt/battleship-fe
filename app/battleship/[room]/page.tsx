@@ -19,6 +19,9 @@ import { getBattleShipBoard } from '@/services/battleshipService';
 import { useUserStore } from '@/stores/userStore';
 import { LoginModal } from '@/partials/auth/login-modal';
 import { SignupModal } from '@/partials/auth/signup-modal';
+import { Login } from '@/services/userService';
+import { toast } from 'sonner';
+import { extractErrorMessage } from '@/lib/utils';
 
 export default function BattleShipPage() {
     const [phase, setPhase] = useState<'lobby' | 'setup' | 'battle'>('lobby');
@@ -85,11 +88,11 @@ export default function BattleShipPage() {
             if (playerCount >= 2) {
                 const playerOne = roomData.players.find(p => p.me === 1);
                 const playerTwo = roomData.players.find(p => p.me === 2);
-                const isPlayer = playerOne?.player_id === user?.id || playerTwo?.player_id === user?.id;
+                const isPlayer = playerOne?.player.user_id === user?.id || playerTwo?.player.user_id === user?.id;
                 if (isPlayer) {
                     setPlayerOne(playerOne || null);
                     setPlayerTwo(playerTwo || null);
-                    setMe(playerOne?.player_id === user?.id ? 1 : 2);
+                    setMe(playerOne?.player.user_id === user?.id ? 1 : 2);
                     setRoom(roomData.room);
                     setRoomId(roomData.room.id);
                     setRoomFull(false);
@@ -106,7 +109,7 @@ export default function BattleShipPage() {
                     setRoom(roomData.room);
                     setRoomId(roomData.room.id);
                 } else {
-                    const joinedPlayer = await joinRoom('battleship', roomData.room.id, user?.name || 'Guest', null);
+                    const joinedPlayer = await joinRoom('battleship', roomData.room.id, user?.username || 'Guest', user?.id || null);
                     setPlayerOne(playerOne);
                     setPlayerTwo(joinedPlayer);
                     setMe(2);
@@ -171,32 +174,37 @@ export default function BattleShipPage() {
     // Xử lý đăng nhập
     const handleLogin = async (email: string, password: string) => {
         setAuthLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const mockUser = {
-            id: 'dbe1fcdc-cbbc-4312-a3a9-7bfb6aa4ef96',
-            name: 'Test User',
-            email,
-            avatar: ''
-        };
-        login(mockUser, 'mock-token');
-        setAuthLoading(false);
-        // checkAndJoinRoom();
-        setShowLogin(false);
+        try {
+            const response = await Login({ email, password });
+            login(response.user, response.tokens);
+            setShowLogin(false);
+        } catch (error: any) {
+            throw Error("Login failed"); 
+        } finally {
+            setAuthLoading(false);
+        }
     };
 
     const handleSignup = async (username: string, email: string, password: string) => {
-        setAuthLoading(true);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const mockUser = {
-            id: 'dbe1fcdc-cbbc-4312-a3a9-7bfb6aa4ef96',
-            name: username,
-            email,
-            avatar: ''
-        };
-        login(mockUser, 'mock-token');
-        setAuthLoading(false);
-        // checkAndJoinRoom();
-        setShowSignup(false);
+        // setAuthLoading(true);
+        // await new Promise(resolve => setTimeout(resolve, 1000));
+        // const mockUser = {
+        //     id: 'dbe1fcdc-cbbc-4312-a3a9-7bfb6aa4ef96',
+        //     user_name: username,
+        //     email,
+        //     nation: 'VN',
+        //     avatar: '',
+        //     created_at: new Date().toISOString(),
+        //     updated_at: new Date().toISOString()
+        // };
+        // const mockTokens = {
+        //     access_token: 'mock-access-token',
+        //     refresh_token: 'mock-refresh-token',
+        //     expires_in: 3600
+        // };
+        // login(mockUser, mockTokens);
+        // setAuthLoading(false);
+        // setShowSignup(false);
     };
 
     const handleStartGame = (player: number) => {
