@@ -2,7 +2,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRoomStore } from "@/stores/roomStore";
 import { useSocketStore } from "@/stores/socketStore";
-import { getRoom, kickRoomPlayer, updateBattleshipOptions, updateRoomPlayer } from "@/services/roomService";
+import { getRoom, kickRoomPlayer, updateBattleshipOptions, updateRoomPlayer, updateRoomStatus } from "@/services/roomService";
 import { Socket } from "socket.io-client";
 import { useRouter } from "next/navigation";
 import { InviteQR } from './lobby/invite-qr';
@@ -11,7 +11,11 @@ import { LoginModal } from '@/partials/auth/login-modal';
 import { BattleshipOtions } from "@/models";
 import { withLoading } from '@/utils/loadingUtils';
 
-export default function Lobby() {
+interface LobbyProps {
+  setPhase: (phase: 'lobby' | 'setup') => void;
+}
+
+export default function Lobby({ setPhase }: LobbyProps) {
   const [hasOpponent, setHasOpponent] = useState(false);
   const [roomOptions, setRoomOptions] = useState<BattleshipOtions | null>(null);
   const [editingOptions, setEditingOptions] = useState<BattleshipOtions | null>(null);
@@ -171,6 +175,13 @@ export default function Lobby() {
         const options = JSON.parse(payload?.options || "{}");
         setRoomOptions(options);
       });
+      socket.on('room:started', (payload: any) => {
+        console.log('Room started:', payload);
+        const { room_id } = payload;
+        if (room_id === getRoomFromStore()?.id) {
+          setPhase('setup');
+        }
+      });
     }
 
     // Cleanup listener when component unmounts
@@ -181,7 +192,9 @@ export default function Lobby() {
       socket.off('room:kicked', handleRoomKicked);
       if (getMe() === 2 && hasPlayerTwo) {
         socket.off('room:update_options');
+        socket.off('room:started');
       }
+      
     };
   }, [getSocket, setPlayerOne, setPlayerTwo, setRoom, setRoomId, setMe, router]);
 
@@ -223,6 +236,13 @@ export default function Lobby() {
         });
       });
     }
+  }
+
+  const handleStartGame = async () => {
+    await withLoading('lobby-panel', async () => {
+      await updateRoomStatus(getRoomFromStore()?.id || "", "setup");
+    });
+    setPhase('setup');
   }
 
   // Nếu có 2 người chơi và người hiện tại là player 1, hiển thị lobby của player 1
@@ -299,10 +319,10 @@ export default function Lobby() {
           </div>
           <button
             className="bg-blue-600 dark:bg-blue-700 text-white px-6 py-2 rounded font-bold hover:bg-blue-700 dark:hover:bg-blue-800 transition"
+            onClick={handleStartGame}
           >
             Bắt đầu trò chơi
           </button>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Chờ người chơi 2 sẵn sàng...</p>
         </div>
 
         {/* Player 2 */}
@@ -405,11 +425,6 @@ export default function Lobby() {
             </div>
             <span className="text-xs text-gray-500">(Chỉ host mới có thể thay đổi)</span>
           </div>
-          <button
-            className="bg-green-600 dark:bg-green-700 text-white px-6 py-2 rounded font-bold hover:bg-green-700 dark:hover:bg-green-800 transition"
-          >
-            Sẵn sàng
-          </button>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Chờ host bắt đầu trò chơi...</p>
         </div>
 
@@ -512,13 +527,7 @@ export default function Lobby() {
               <option value={2}>Khách</option>
             </select>
           </div>
-                  </div>
-          <button
-            className={`bg-blue-600 dark:bg-blue-700 text-white px-6 py-2 rounded font-bold transition ${!hasPlayerTwo ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700 dark:hover:bg-blue-800'}`}
-            disabled={!hasPlayerTwo}
-          >
-            Sẵn sàng
-          </button>
+          </div>
       </div>
 
       {/* Player 2 hoặc ô trống mời bạn bè */}

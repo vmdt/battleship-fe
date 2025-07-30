@@ -267,7 +267,7 @@ export default function BattleShipPage() {
                 </div>
             ) : (
                 <>
-                    {phase === 'lobby' && <Lobby />}
+                    {phase === 'lobby' && <Lobby setPhase={setPhase} />}
                     {phase === 'setup' && (
                         <ShipBoard
                             onStart={(board: Square[][], ships: Ship[], callback?: Function) => {

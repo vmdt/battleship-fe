@@ -1,4 +1,4 @@
-import { BattleshipOtions, CreateRoomPayload, CreateRoomResponse, GetRoomResponse } from "@/models";
+import { BattleshipOtions, CreateRoomPayload, CreateRoomResponse, GetRoomResponse, RoomModel } from "@/models";
 import { BattleshipOptionUpdatePayload } from "@/models/room/battleship";
 import axios from "axios";
 
@@ -36,8 +36,8 @@ export async function kickRoomPlayer(roomId: string, playerId: string): Promise<
     return result.data;
 }
 
-export async function updateRoomStatus(roomId: string, status: string): Promise<any> {
-    const result = await axios.put<any>(`${process.env.NEXT_PUBLIC_BASE_API_URL}/room/status`, {
+export async function updateRoomStatus(roomId: string, status: string): Promise<RoomModel> {
+    const result = await axios.put<RoomModel>(`${process.env.NEXT_PUBLIC_BASE_API_URL}/room/status`, {
         room_id: roomId,
         status
     });
