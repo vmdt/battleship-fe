@@ -2,7 +2,7 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRoomStore } from "@/stores/roomStore";
 import { useSocketStore } from "@/stores/socketStore";
-import { getRoom, kickRoomPlayer, updateRoomPlayer } from "@/services/roomService";
+import { getRoom, kickRoomPlayer, updateBattleshipOptions, updateRoomPlayer } from "@/services/roomService";
 import { Socket } from "socket.io-client";
 import { useRouter } from "next/navigation";
 import { InviteQR } from './lobby/invite-qr';
@@ -112,7 +112,6 @@ export default function Lobby() {
     };
 
     const handleUserReconnected = async (payload: any) => {
-        console.log('User reconnected:', payload);
         if (payload) {
             if (getMe() === 1) {
                 const playerTwo = getPlayerTwo();
@@ -167,6 +166,12 @@ export default function Lobby() {
     socket.on('user:reconnected', handleUserReconnected);
 
     socket.on('room:kicked', handleRoomKicked);
+    if (getMe() === 2 && hasPlayerTwo) {
+      socket.on('room:update_options', (payload: any) => {
+        const options = JSON.parse(payload?.options || "{}");
+        setRoomOptions(options);
+      });
+    }
 
     // Cleanup listener when component unmounts
     return () => {
@@ -174,6 +179,9 @@ export default function Lobby() {
       socket.off('user:disconnected', handleUserDisconnected);
       socket.off('user:reconnected', handleUserReconnected);
       socket.off('room:kicked', handleRoomKicked);
+      if (getMe() === 2 && hasPlayerTwo) {
+        socket.off('room:update_options');
+      }
     };
   }, [getSocket, setPlayerOne, setPlayerTwo, setRoom, setRoomId, setMe, router]);
 
@@ -209,15 +217,10 @@ export default function Lobby() {
       setEditingOptions(updatedOptions);
       setRoomOptions(updatedOptions);
       
-      // Use utility function for loading
       await withLoading('lobby-panel', async () => {
-        // TODO: Implement API call to save options immediately
-        console.log('Auto-saving options:', updatedOptions);
-        // Here you would call an API to update room options
-        // Example: await updateRoomOptions(getRoomFromStore()?.id || "", updatedOptions);
-        
-        // Simulate API call delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await updateBattleshipOptions(getRoomFromStore()?.id || "", {
+          [field]: value,
+        });
       });
     }
   }
