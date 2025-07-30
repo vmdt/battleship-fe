@@ -149,7 +149,7 @@ export default function BattleShipPage() {
             setShowSignup(false);
             checkAndJoinRoom();
         }
-    }, [isLogin, user]);
+    }, [isLogin, user, phase]);
 
     useEffect(() => {
         if (phase === 'battle') {

@@ -13,6 +13,7 @@ import { useRoomStore } from '@/stores/roomStore';
 import { RoomPlayerStatus } from '@/models/player';
 import { updateRoomStatus } from "@/services/roomService"
 import { Chat } from '../chat/chat';
+import { useCountdownTimer, formatTime } from '@/hooks/useCountdownTimer';
 
 interface ShipBoardProps {
     onStart?: (board: Square[][], ships: Ship[], callback: Function) => void;
@@ -89,6 +90,23 @@ const ShipBoard = ({ onStart, setPhase }: ShipBoardProps) => {
     const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
     const { getSocket } = useSocketStore();
     const [waitingOther, setWaitingOther] = useState(false);
+
+    // Get room options for countdown timer
+    const room = getRoom();
+    const roomOptions = room?.options;
+    
+    // Initialize countdown timer
+    const { timeLeft, isTimeout, isActive } = useCountdownTimer({
+      startPlaceAt: roomOptions?.start_place_at,
+      timePlaceShip: roomOptions?.time_place_ship || 120
+    });
+
+    // Handle timeout - auto transition to battle phase
+    useEffect(() => {
+      if (isTimeout && setPhase) {
+        // Auto transition to battle phase when timeout
+      }
+    }, [isTimeout, setPhase]);
 
     // Handle rotation with R key
     useEffect(() => {
@@ -202,7 +220,7 @@ const ShipBoard = ({ onStart, setPhase }: ShipBoardProps) => {
     };
 
     const handleSquareClick = (x: number, y: number) => {
-        if (waitingOther) return; // Không cho phép đặt lại thuyền khi đang chờ
+        if (waitingOther || isTimeout) return; // Không cho phép đặt lại thuyền khi đang chờ hoặc timeout
         // Nếu đang đặt thuyền mới
         if (currentShipIndex < ships.length) {
             const currentShip = ships[currentShipIndex];
@@ -335,6 +353,23 @@ const ShipBoard = ({ onStart, setPhase }: ShipBoardProps) => {
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
                     Place Your Ships
                 </h2>
+                
+                {/* Countdown Timer */}
+                <div className="mb-4 text-center">
+                    <div className="text-lg font-semibold text-gray-800 dark:text-white mb-2">
+                        Time Remaining
+                    </div>
+                    {isTimeout ? (
+                        <div className="text-2xl font-bold text-red-600 dark:text-red-400 animate-pulse">
+                            TIMEOUT
+                        </div>
+                    ) : (
+                        <div className={`text-3xl font-bold ${timeLeft <= 30 ? 'text-red-600 dark:text-red-400 animate-pulse' : timeLeft <= 60 ? 'text-orange-600 dark:text-orange-400' : 'text-blue-600 dark:text-blue-400'}`}>
+                            {formatTime(timeLeft)}
+                        </div>
+                    )}
+                </div>
+                
                 {/* Hiển thị số thuyền còn lại */}
                 <div className="mb-2 text-base font-semibold text-blue-600 dark:text-blue-400">
                     Số thuyền còn lại: {shipsLeft}
@@ -375,12 +410,12 @@ const ShipBoard = ({ onStart, setPhase }: ShipBoardProps) => {
                         </div>
                         {/* Board squares */}
                         <div 
-                            className={`grid grid-cols-10 gap-1 ${waitingOther ? 'cursor-not-allowed opacity-70' : ''}`}
+                            className={`grid grid-cols-10 gap-1 ${waitingOther || isTimeout ? 'cursor-not-allowed opacity-70' : ''}`}
                             onMouseLeave={handleMouseLeave}
                         >
                             {board.map((row, x) =>
                                 row.map((square, y) => (
-                                    <div key={`${x}-${y}`} className={waitingOther ? 'cursor-not-allowed' : ''}>
+                                    <div key={`${x}-${y}`} className={waitingOther || isTimeout ? 'cursor-not-allowed' : ''}>
                                         <ShipSquare
                                             square={square}
                                             position={{ x, y }}
@@ -410,17 +445,22 @@ const ShipBoard = ({ onStart, setPhase }: ShipBoardProps) => {
                         <span>Empty</span>
                     </div>
                 </div>
-                {/* Start button: luôn hiển thị, disable khi chưa đặt xong hoặc đang chờ */}
+                {/* Start button: luôn hiển thị, disable khi chưa đặt xong hoặc đang chờ hoặc timeout */}
                 {waitingOther && (
                     <div className="mt-4 text-yellow-600 dark:text-yellow-400 font-semibold animate-pulse">
                         Waiting for other player...
                     </div>
                 )}
+                {isTimeout && (
+                    <div className="mt-4 text-red-600 dark:text-red-400 font-semibold animate-pulse">
+                        Time's up! You can no longer place ships.
+                    </div>
+                )}
                 <button
                     className={`mt-6 px-6 py-2 rounded-lg text-lg font-semibold shadow transition-colors \
-                        ${shipsLeft === 0 && !waitingOther ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-400 text-gray-200 cursor-not-allowed'}`}
+                        ${shipsLeft === 0 && !waitingOther && !isTimeout ? 'bg-blue-600 hover:bg-blue-700 text-white' : 'bg-gray-400 text-gray-200 cursor-not-allowed'}`}
                     onClick={() => onStart?.(board, ships, handleCallBackStart)}
-                    disabled={shipsLeft > 0 || waitingOther}
+                    disabled={shipsLeft > 0 || waitingOther || isTimeout}
                 >
                     Start
                 </button>
