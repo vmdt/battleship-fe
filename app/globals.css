@@ -247,3 +247,65 @@
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
 }
+
+/* Global Loading Styles */
+.loading {
+  position: relative;
+  pointer-events: none;
+  opacity: 0.6;
+  transition: opacity 0.2s ease-in-out;
+}
+
+.loading::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  z-index: 10;
+  border-radius: inherit;
+}
+
+.loading::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border: 2px solid #e5e7eb;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  z-index: 11;
+}
+
+.dark .loading::before {
+  background: rgba(0, 0, 0, 0.8);
+}
+
+.dark .loading::after {
+  border: 2px solid #374151;
+  border-top: 2px solid #60a5fa;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Loading overlay for specific elements */
+.loading-overlay {
+  position: relative;
+}
+
+.loading-overlay.loading::before {
+  background: rgba(255, 255, 255, 0.9);
+}
+
+.dark .loading-overlay.loading::before {
+  background: rgba(0, 0, 0, 0.9);
+}

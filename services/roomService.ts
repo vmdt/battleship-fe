@@ -1,10 +1,9 @@
-import { CreateRoomResponse, GetRoomResponse } from "@/models";
+import { CreateRoomPayload, CreateRoomResponse, GetRoomResponse } from "@/models";
 import axios from "axios";
 
-export async function playerCreateRoom(gameId: string, playerName: string, userId: string | null): Promise<CreateRoomResponse> {
+export async function playerCreateRoom(payload: CreateRoomPayload): Promise<CreateRoomResponse> {
     const result = await axios.post<CreateRoomResponse>(`${process.env.NEXT_PUBLIC_BASE_API_URL}/room/player/create`, {
-        name: playerName,
-        userId,
+        ...payload
     });
     return result.data;
 }

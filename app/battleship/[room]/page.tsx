@@ -79,6 +79,7 @@ export default function BattleShipPage() {
         try {
             setLoading(true);
             setRoomNotFound(false);
+            await new Promise(resolve => setTimeout(resolve, 2000));
             const roomData = await getRoom(roomId);
             if (!roomData.room.id) {
                 setRoomNotFound(true);
@@ -101,7 +102,7 @@ export default function BattleShipPage() {
                 }
             } else if (playerCount === 1) {
                 const playerOne = roomData.players[0];
-                const isPlayerInRoom = playerOne?.player_id === user?.id;
+                const isPlayerInRoom = playerOne?.player.user_id === user?.id;
                 if (isPlayerInRoom) {
                     setPlayerOne(playerOne);
                     setPlayerTwo(null);
@@ -160,6 +161,7 @@ export default function BattleShipPage() {
                     let playerId = player === 1 ? getPlayerOne()?.player_id : getPlayerTwo()?.player_id;
                     if (!room?.id || !playerId) return;
                     const data = await getBattleShipBoard(room.id, playerId);
+                    console.log('Fetched battle board data:', data);
                     setBattleBoardData(data);
                 } catch (err) {
                     console.error('Failed to fetch battle board', err);
@@ -287,6 +289,9 @@ export default function BattleShipPage() {
                                 (() => {
         // Mapping ships vào myBoard
         const myBoard: import('@/models/game').Square[][] = Array(10).fill(null).map(() => Array(10).fill(null).map(() => ({ status: 'empty' as const, hover: false })));
+        battleBoardData.ships = battleBoardData.ships || [];
+        battleBoardData.opponent_shots = battleBoardData.opponent_shots || [];
+        battleBoardData.shots = battleBoardData.shots || [];
         battleBoardData.ships.forEach(ship => {
             ship.positions.forEach((pos, index) => {
                 myBoard[pos.x][pos.y] = { ...myBoard[pos.x][pos.y], status: 'ship', shipPart: {
