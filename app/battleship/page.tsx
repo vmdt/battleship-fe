@@ -14,6 +14,8 @@ import { Login } from "@/services/userService";
 import { extractErrorMessage } from "@/lib/utils";
 import { Bot, Globe, Users } from "lucide-react";
 import { toast } from "sonner";
+import { CreateRoomOptions } from "@/partials/battleship/home/create-room-modal";
+import { CreateRoomPayload } from "@/models/room";
 
 const GAME_ID = "battleship";
 
@@ -45,16 +47,33 @@ const BattleShipPage = () => {
 
     }, [connect, getSocket]);
 
-    const handleCreateRoom = async (displayName: string) => {
+    // Sửa lại handleCreateRoom để nhận options
+    const handleCreateRoom = async (options: CreateRoomOptions, userId: string) => {
         setLoading(true);
         try {
-            const userId = null;
-            // reset rooom
+            // reset room
             setRoomId(null);
             setRoom(null);
             setPlayerOne(null);
             setPlayerTwo(null);
-            const data = await playerCreateRoom(GAME_ID, displayName, userId);
+
+            // Chuyển đổi options từ modal sang payload cho API
+            const payload: CreateRoomPayload = {
+                name: options.displayName,
+                user_id: userId || undefined,
+                options: {
+                    time_per_turn: Number(options.timePerTurn),
+                    time_place_ship: Number(options.placingTime),
+                    who_go_first:
+                        options.whoPlayFirst === "host"
+                            ? 1
+                            : options.whoPlayFirst === "guest"
+                            ? 2
+                            : 0, // 0: random, 1: host, 2: guest
+                },
+            };
+
+            const data = await playerCreateRoom(payload);
             const socket = getSocket(GAME_ID)?.socket;
             if (!socket) {
                 alert("Socket connection failed");
@@ -227,7 +246,7 @@ const BattleShipPage = () => {
             <CreateRoomModal
                 isOpen={isCreateModalOpen}
                 onClose={() => setIsCreateModalOpen(false)}
-                onCreate={handleCreateRoom}
+                onCreate={(options, userId) => handleCreateRoom(options, userId)}
             />
 
             {/* Login Modal */}

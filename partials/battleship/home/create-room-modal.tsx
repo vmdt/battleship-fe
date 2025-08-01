@@ -5,25 +5,35 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
+import { useUserStore } from "@/stores/userStore";
+
+export type CreateRoomOptions = {
+  displayName: string;
+  timePerTurn: string;
+  whoPlayFirst: string;
+  placingTime: string;
+};
 
 type CreateRoomModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (roomName: string) => void;
+  onCreate: (options: CreateRoomOptions, userId: string) => void;
 };
 
 export function CreateRoomModal({ isOpen, onClose, onCreate }: CreateRoomModalProps) {
-  const [displayName, setDisplayName] = useState("");
   const [timePerTurn, setTimePerTurn] = useState("30");
   const [whoPlayFirst, setWhoPlayFirst] = useState("random");
   const [placingTime, setPlacingTime] = useState("120");
+  const { user } = useUserStore();
 
   const handleCreate = () => {
-    if (!displayName.trim()) {
-      alert("Vui lòng nhập tên hiển thị");
-      return;
-    }
-    onCreate(displayName);
+    const displayName = user?.username || "Guest";
+    onCreate({
+      displayName,
+      timePerTurn,
+      whoPlayFirst,
+      placingTime,
+    }, user?.id || "");
   };
 
   return (
@@ -44,33 +54,12 @@ export function CreateRoomModal({ isOpen, onClose, onCreate }: CreateRoomModalPr
       }
     >
       <div className="space-y-6">
-          {/* Pannel User */}
-          {/* <Card>
-            <CardHeader>
-              <CardTitle className="text-lg font-medium text-gray-900 dark:text-white">Pannel User</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="displayName">Tên hiển thị</Label>
-                <Input
-                  id="displayName"
-                  type="text"
-                  placeholder="Nhập tên hiển thị của bạn"
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-            </CardContent>
-          </Card> */}
-
           {/* Pannel Options */}
           <Card>
             <CardHeader>
               <CardTitle className="text-lg font-medium text-gray-900 dark:text-white">Options</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-            
               <div className="space-y-2">
                 <Label htmlFor="timePerTurn">Thời gian mỗi lượt</Label>
                 <Select value={timePerTurn} onValueChange={setTimePerTurn}>

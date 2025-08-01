@@ -2,15 +2,23 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { useRoomStore } from "@/stores/roomStore";
 import { useSocketStore } from "@/stores/socketStore";
-import { getRoom, kickRoomPlayer, updateRoomPlayer } from "@/services/roomService";
+import { getRoom, kickRoomPlayer, updateBattleshipOptions, updateRoomPlayer, updateRoomStatus } from "@/services/roomService";
 import { Socket } from "socket.io-client";
 import { useRouter } from "next/navigation";
 import { InviteQR } from './lobby/invite-qr';
 import { useUserStore } from '@/stores/userStore';
 import { LoginModal } from '@/partials/auth/login-modal';
+import { BattleshipOtions } from "@/models";
+import { withLoading } from '@/utils/loadingUtils';
 
-export default function Lobby() {
+interface LobbyProps {
+  setPhase: (phase: 'lobby' | 'setup') => void;
+}
+
+export default function Lobby({ setPhase }: LobbyProps) {
   const [hasOpponent, setHasOpponent] = useState(false);
+  const [roomOptions, setRoomOptions] = useState<BattleshipOtions | null>(null);
+  const [editingOptions, setEditingOptions] = useState<BattleshipOtions | null>(null);
   const { 
     playerOne, 
     playerTwo, 
@@ -36,6 +44,15 @@ export default function Lobby() {
   const isPlayerOne = currentMe === 1;
   const isPlayerTwo = currentMe === 2;
 
+  // Load room options from store
+  useEffect(() => {
+    const room = getRoomFromStore();
+    if (room?.options) {
+      setRoomOptions(room.options);
+      setEditingOptions(room.options);
+    }
+  }, [getRoomFromStore]);
+
   // Listen for room:joined and user:disconnected events
   useEffect(() => {
     const socket = getSocket('battleship')?.socket as Socket;
@@ -53,6 +70,11 @@ export default function Lobby() {
           if (roomData.room) {
             setRoom(roomData.room);
             setRoomId(roomData.room.id);
+            // Update room options when room data is updated
+            if (roomData.room.options) {
+              setRoomOptions(roomData.room.options);
+              setEditingOptions(roomData.room.options);
+            }
           }
           
           if (roomData.players && roomData.players.length > 0) {
@@ -94,7 +116,6 @@ export default function Lobby() {
     };
 
     const handleUserReconnected = async (payload: any) => {
-        console.log('User reconnected:', payload);
         if (payload) {
             if (getMe() === 1) {
                 const playerTwo = getPlayerTwo();
@@ -149,6 +170,19 @@ export default function Lobby() {
     socket.on('user:reconnected', handleUserReconnected);
 
     socket.on('room:kicked', handleRoomKicked);
+    if (getMe() === 2 && hasPlayerTwo) {
+      socket.on('room:update_options', (payload: any) => {
+        const options = JSON.parse(payload?.options || "{}");
+        setRoomOptions(options);
+      });
+      socket.on('room:started', (payload: any) => {
+        console.log('Room started:', payload);
+        const { room_id } = payload;
+        if (room_id === getRoomFromStore()?.id) {
+          setPhase('setup');
+        }
+      });
+    }
 
     // Cleanup listener when component unmounts
     return () => {
@@ -156,6 +190,11 @@ export default function Lobby() {
       socket.off('user:disconnected', handleUserDisconnected);
       socket.off('user:reconnected', handleUserReconnected);
       socket.off('room:kicked', handleRoomKicked);
+      if (getMe() === 2 && hasPlayerTwo) {
+        socket.off('room:update_options');
+        socket.off('room:started');
+      }
+      
     };
   }, [getSocket, setPlayerOne, setPlayerTwo, setRoom, setRoomId, setMe, router]);
 
@@ -181,11 +220,36 @@ export default function Lobby() {
     }
   }
 
+  const handleOptionChange = async (field: keyof BattleshipOtions, value: number) => {
+    if (editingOptions) {
+      const updatedOptions = {
+        ...editingOptions,
+        [field]: value
+      };
+      
+      setEditingOptions(updatedOptions);
+      setRoomOptions(updatedOptions);
+      
+      await withLoading('lobby-panel', async () => {
+        await updateBattleshipOptions(getRoomFromStore()?.id || "", {
+          [field]: value,
+        });
+      });
+    }
+  }
+
+  const handleStartGame = async () => {
+    await withLoading('lobby-panel', async () => {
+      await updateRoomStatus(getRoomFromStore()?.id || "", "setup");
+    });
+    setPhase('setup');
+  }
+
   // Nếu có 2 người chơi và người hiện tại là player 1, hiển thị lobby của player 1
   if (hasPlayerTwo && isPlayerOne) {
     return (
     <>
-      <div className="flex items-center justify-between w-full max-w-4xl mx-auto p-8 bg-white dark:bg-zinc-900 rounded-lg shadow-lg transition-colors">
+      <div id="lobby-panel" className="flex items-center justify-between w-full max-w-4xl mx-auto p-8 bg-white dark:bg-zinc-900 rounded-lg shadow-lg transition-colors">
         {/* Player 1 (Host) */}
         <div className="flex items-center w-1/4 min-h-[100px] flex-col justify-center">
           <div className="relative">
@@ -212,21 +276,53 @@ export default function Lobby() {
         </div>
 
         {/* Game Options - Player 1 Controls */}
-        <div className="flex flex-col items-center w-2/4">
-          <div className="mb-4">
-            <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Giờ thi đấu:</label>
-            <select className="border rounded px-2 py-1 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 border-gray-300 dark:border-zinc-700">
-              <option>10:00</option>
-              <option>14:00</option>
-              <option>20:00</option>
-            </select>
+        <div className="flex flex-col items-center w-2/4 loading-overlay">
+          <div className="mb-4 space-y-2">
+            <div>
+              <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Thời gian mỗi lượt:</label>
+              <select 
+                className="border rounded px-2 py-1 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 border-gray-300 dark:border-zinc-700"
+                value={editingOptions?.time_per_turn || 30}
+                onChange={(e) => handleOptionChange('time_per_turn', Number(e.target.value))}
+              >
+                <option value={15}>15 giây</option>
+                <option value={30}>30 giây</option>
+                <option value={60}>1 phút</option>
+                <option value={120}>2 phút</option>
+              </select>
+            </div>
+            <div>
+              <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Thời gian đặt tàu:</label>
+              <select 
+                className="border rounded px-2 py-1 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 border-gray-300 dark:border-zinc-700"
+                value={editingOptions?.time_place_ship || 120}
+                onChange={(e) => handleOptionChange('time_place_ship', Number(e.target.value))}
+              >
+                <option value={60}>1 phút</option>
+                <option value={120}>2 phút</option>
+                <option value={180}>3 phút</option>
+                <option value={300}>5 phút</option>
+              </select>
+            </div>
+            <div>
+              <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Người đi trước:</label>
+              <select 
+                className="border rounded px-2 py-1 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 border-gray-300 dark:border-zinc-700"
+                value={editingOptions?.who_go_first || 0}
+                onChange={(e) => handleOptionChange('who_go_first', Number(e.target.value))}
+              >
+                <option value={0}>Ngẫu nhiên</option>
+                <option value={1}>Chủ phòng</option>
+                <option value={2}>Khách</option>
+              </select>
+            </div>
           </div>
           <button
             className="bg-blue-600 dark:bg-blue-700 text-white px-6 py-2 rounded font-bold hover:bg-blue-700 dark:hover:bg-blue-800 transition"
+            onClick={handleStartGame}
           >
             Bắt đầu trò chơi
           </button>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Chờ người chơi 2 sẵn sàng...</p>
         </div>
 
         {/* Player 2 */}
@@ -279,7 +375,7 @@ export default function Lobby() {
   if (hasPlayerTwo && isPlayerTwo) {
     return (
     <>
-      <div className="flex items-center justify-between w-full max-w-4xl mx-auto p-8 bg-white dark:bg-zinc-900 rounded-lg shadow-lg transition-colors">
+      <div id="lobby-panel" className="flex items-center justify-between w-full max-w-4xl mx-auto p-8 bg-white dark:bg-zinc-900 rounded-lg shadow-lg transition-colors">
         {/* Player 1 */}
         <div className="flex items-center w-1/4 min-h-[100px] flex-col justify-center">
           <div className="relative">
@@ -307,20 +403,28 @@ export default function Lobby() {
 
         {/* Game Options - Player 2 Controls */}
         <div className="flex flex-col items-center w-2/4">
-          <div className="mb-4">
-            <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Giờ thi đấu:</label>
-            <select className="border rounded px-2 py-1 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 border-gray-300 dark:border-zinc-700" disabled>
-              <option>10:00</option>
-              <option>14:00</option>
-              <option>20:00</option>
-            </select>
-            <span className="text-xs text-gray-500 ml-2">(Chỉ host mới có thể thay đổi)</span>
+          <div className="mb-4 space-y-2">
+            <div>
+              <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Thời gian mỗi lượt:</label>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {roomOptions?.time_per_turn || 30} giây
+              </span>
+            </div>
+            <div>
+              <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Thời gian đặt tàu:</label>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {roomOptions?.time_place_ship || 120} giây
+              </span>
+            </div>
+            <div>
+              <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Người đi trước:</label>
+              <span className="text-sm text-gray-600 dark:text-gray-400">
+                {roomOptions?.who_go_first === 1 ? 'Chủ phòng' : 
+                 roomOptions?.who_go_first === 2 ? 'Khách' : 'Ngẫu nhiên'}
+              </span>
+            </div>
+            <span className="text-xs text-gray-500">(Chỉ host mới có thể thay đổi)</span>
           </div>
-          <button
-            className="bg-green-600 dark:bg-green-700 text-white px-6 py-2 rounded font-bold hover:bg-green-700 dark:hover:bg-green-800 transition"
-          >
-            Sẵn sàng
-          </button>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Chờ host bắt đầu trò chơi...</p>
         </div>
 
@@ -359,7 +463,7 @@ export default function Lobby() {
   // Lobby mặc định khi chưa có đủ 2 người chơi
   return (
     <>
-    <div className="flex items-center justify-between w-full max-w-4xl mx-auto p-8 bg-white dark:bg-zinc-900 rounded-lg shadow-lg transition-colors">
+    <div id="lobby-panel" className="flex items-center justify-between w-full max-w-4xl mx-auto p-8 bg-white dark:bg-zinc-900 rounded-lg shadow-lg transition-colors">
       {/* Player 1 */}
       <div className="flex items-center w-1/4 min-h-[100px] flex-col justify-center">
         <div className="relative">
@@ -382,22 +486,48 @@ export default function Lobby() {
         <div className="text-sm text-gray-500 dark:text-gray-400">Level 1</div>
       </div>
 
-      {/* Options */}
-      <div className="flex flex-col items-center w-2/4">
-        <div className="mb-4">
-          <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Giờ thi đấu:</label>
-          <select className="border rounded px-2 py-1 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 border-gray-300 dark:border-zinc-700">
-            <option>10:00</option>
-            <option>14:00</option>
-            <option>20:00</option>
-          </select>
-        </div>
-        <button
-          className={`bg-blue-600 dark:bg-blue-700 text-white px-6 py-2 rounded font-bold transition ${!hasPlayerTwo ? 'opacity-50 cursor-not-allowed' : 'hover:bg-blue-700 dark:hover:bg-blue-800'}`}
-          disabled={!hasPlayerTwo}
-        >
-          Sẵn sàng
-        </button>
+              {/* Options */}
+        <div id="options-panel" className="flex flex-col items-center w-2/4 loading-overlay">
+        <div className="mb-4 space-y-2">
+          <div>
+            <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Thời gian mỗi lượt:</label>
+            <select 
+              className="border rounded px-2 py-1 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 border-gray-300 dark:border-zinc-700"
+              value={editingOptions?.time_per_turn || 30}
+              onChange={(e) => handleOptionChange('time_per_turn', Number(e.target.value))}
+            >
+              <option value={15}>15 giây</option>
+              <option value={30}>30 giây</option>
+              <option value={60}>1 phút</option>
+              <option value={120}>2 phút</option>
+            </select>
+          </div>
+          <div>
+            <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Thời gian đặt tàu:</label>
+            <select 
+              className="border rounded px-2 py-1 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 border-gray-300 dark:border-zinc-700"
+              value={editingOptions?.time_place_ship || 120}
+              onChange={(e) => handleOptionChange('time_place_ship', Number(e.target.value))}
+            >
+              <option value={60}>1 phút</option>
+              <option value={120}>2 phút</option>
+              <option value={180}>3 phút</option>
+              <option value={300}>5 phút</option>
+            </select>
+          </div>
+          <div>
+            <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Người đi trước:</label>
+            <select 
+              className="border rounded px-2 py-1 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 border-gray-300 dark:border-zinc-700"
+              value={editingOptions?.who_go_first || 0}
+              onChange={(e) => handleOptionChange('who_go_first', Number(e.target.value))}
+            >
+              <option value={0}>Ngẫu nhiên</option>
+              <option value={1}>Chủ phòng</option>
+              <option value={2}>Khách</option>
+            </select>
+          </div>
+          </div>
       </div>
 
       {/* Player 2 hoặc ô trống mời bạn bè */}
@@ -448,7 +578,7 @@ export default function Lobby() {
         )}
       </div>
     </div>
-      <div className="flex items-center justify-center w-full max-w-4xl mx-auto p-8 bg-white dark:bg-zinc-900 rounded-lg shadow-lg mt-6">
+      <div className="flex justify-center mt-6">
         <InviteQR link={`https://battleship.example.com/invite/${getRoomFromStore()?.id}`} />
       </div>
     </>
