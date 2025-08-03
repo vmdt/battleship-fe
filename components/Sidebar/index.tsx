@@ -13,11 +13,20 @@ import {
   ChevronLeft,
   ChevronRight,
   X,
+  LogOut,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { useMediaQuery } from '@/hooks/useMediaQuery'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 
 import LocaleSwitcher from '@/components/LocaleSwitcher'
 import { ModeToggle } from '@/components/ThemeToggle'
@@ -25,14 +34,14 @@ import { useSettingStore } from '@/stores/settingStore'
 import { useUserStore } from '@/stores/userStore'
 import { LoginModal } from '@/partials/auth/login-modal'
 import { SignupModal } from '@/partials/auth/signup-modal'
-import { Login } from '@/services/userService'
+import { Login, Register } from '@/services/userService'
 import { extractErrorMessage } from '@/lib/utils'
 
 const menuItems = [
+  { icon: Home, label: 'Trang chủ' },
   { icon: MessageCircle, label: 'Nhắn tin' },
   { icon: Users, label: 'Bạn bè' },
   { icon: History, label: 'Lịch sử' },
-  { icon: Home, label: 'Trang chủ' },
   { icon: ShoppingCart, label: 'Cửa hàng' },
   { icon: Gift, label: 'Vật phẩm' },
 ]
@@ -54,6 +63,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const [isLoginModalOpen, setIsLoginModalOpen] = useState(false)
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false)
   const isMobile = useMediaQuery('(max-width: 767px)')
+  const router = useRouter()
 
   const isEffectivelyCollapsed = !isMobile && isMenuCollapsed;
 
@@ -74,27 +84,20 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   };
 
   const handleSignup = async (username: string, email: string, password: string) => {
-    // TODO: Implement actual signup API call
-    console.log('Signup attempt:', username, email, password);
-    
-    // Mock signup for now
-    const mockUser = {
-      id: '2',
-      user_name: username,
-      email: email,
-      nation: 'VN',
-      avatar: 'https://api.dicebear.com/9.x/adventurer/svg?seed=' + username,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString()
-    };
-    const mockTokens = {
-      access_token: 'mock-access-token',
-      refresh_token: 'mock-refresh-token',
-      expires_in: 3600
-    };
-    
-    // login(mockUser, mockTokens);
-    setIsSignupModalOpen(false);
+    try {
+      const response = await Register({ 
+        username, 
+        email, 
+        password,
+        nation: 'VN' // Default nation
+      });
+      login(response.user, response.tokens);
+      setIsSignupModalOpen(false);
+    } catch (error: any) {
+      console.error('Signup error:', error);
+      // Error will be handled by SignupModal component
+      throw error; // Re-throw to let SignupModal handle it
+    }
   };
 
   const handleSignupClick = () => {
@@ -105,6 +108,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const handleLoginClick = () => {
     setIsSignupModalOpen(false);
     setIsLoginModalOpen(true);
+  };
+
+  const handleMenuClick = (label: string) => {
+    if (label === 'Trang chủ') {
+      router.push('/');
+    } else {
+      toast.info(`Tính năng "${label}" sẽ được cập nhật sau`);
+    }
   };
 
   return (
@@ -139,32 +150,67 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           <div className="flex items-center gap-3 px-2 py-3">
             {isLogin ? (
               <>
-                <img
-                  src={user?.avatar || "https://api.dicebear.com/9.x/adventurer/svg?seed=User"}
-                  alt={user?.username || "User"}
-                  className="w-10 h-10 rounded-full border-2 border-gray-200 dark:border-gray-600"
-                />
-                {!isEffectivelyCollapsed && (
-                  <div className="leading-tight">
-                    <p className="text-sm font-medium">{user?.username || "User"}</p>
-                    <p className="text-xs text-muted-foreground">2000 🪙</p>
-                  </div>
+                {isEffectivelyCollapsed ? (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="w-10 h-10 rounded-full p-0 hover:bg-muted"
+                      >
+                        <img
+                          src={user?.avatar || "https://api.dicebear.com/9.x/adventurer/svg?seed=User"}
+                          alt={user?.username || "User"}
+                          className="w-10 h-10 rounded-full border-2 border-gray-200 dark:border-gray-600"
+                        />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-48">
+                      <DropdownMenuItem className="flex items-center gap-2" onClick={handleLogout}>
+                        <LogOut size={16} />
+                        <span>Đăng xuất</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                ) : (
+                  <>
+                    <img
+                      src={user?.avatar || "https://api.dicebear.com/9.x/adventurer/svg?seed=User"}
+                      alt={user?.username || "User"}
+                      className="w-10 h-10 rounded-full border-2 border-gray-200 dark:border-gray-600"
+                    />
+                    <div className="leading-tight">
+                      <p className="text-sm font-medium">{user?.username || "User"}</p>
+                      <p className="text-xs text-muted-foreground">2000 🪙</p>
+                    </div>
+                  </>
                 )}
               </>
             ) : (
               <>
-                <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
-                  <span className="text-xs text-muted-foreground">?</span>
-                </div>
-                {!isEffectivelyCollapsed && (
+                {isEffectivelyCollapsed ? (
                   <Button
                     variant="ghost"
-                    size="sm"
+                    size="icon"
                     onClick={() => setIsLoginModalOpen(true)}
-                    className="text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                    className="w-10 h-10 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80"
                   >
-                    Đăng nhập
+                    <span className="text-xs text-muted-foreground">?</span>
                   </Button>
+                ) : (
+                  <>
+                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center">
+                      <span className="text-xs text-muted-foreground">?</span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setIsLoginModalOpen(true)}
+                      className="text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                    >
+                      Đăng nhập
+                    </Button>
+                  </>
                 )}
               </>
             )}
@@ -176,6 +222,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
               <Button
                 key={label}
                 variant="ghost"
+                onClick={() => handleMenuClick(label)}
                 className={cn(
                   'w-full flex items-center gap-3 justify-start',
                   'px-3 py-2 rounded transition-colors hover:bg-muted'
@@ -197,6 +244,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 <Button
                   key={label}
                   variant="ghost"
+                  onClick={() => toast.info(`Tính năng "${label}" sẽ được cập nhật sau`)}
                   className={cn(
                     'w-full flex items-center gap-3 justify-start',
                     'px-3 py-2 rounded transition-colors hover:bg-muted'

@@ -10,7 +10,8 @@ import { RoomModel, RoomPlayerModel } from "@/models";
 import { Card } from "@/components/ui/card";
 import { CreateRoomModal } from "@/partials/battleship/home/create-room-modal";
 import { LoginModal } from "@/partials/auth/login-modal";
-import { Login } from "@/services/userService";
+import { SignupModal } from "@/partials/auth/signup-modal";
+import { Login, Register } from "@/services/userService";
 import { extractErrorMessage } from "@/lib/utils";
 import { Bot, Globe, Users } from "lucide-react";
 import { toast } from "sonner";
@@ -25,6 +26,7 @@ const BattleShipPage = () => {
     const [loading, setLoading] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+    const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
     const { connect, getSocket } = useSocketStore();
     const { setRoom, setRoomId, setPlayerOne, setPlayerTwo, getMe, setMe } = useRoomStore();
     const { isLogin, login } = useUserStore();
@@ -124,6 +126,25 @@ const BattleShipPage = () => {
             console.error('Login error:', error);
             // Error will be handled by LoginModal component
             throw error; // Re-throw to let LoginModal handle it
+        }
+    };
+
+    const handleSignup = async (username: string, email: string, password: string) => {
+        try {
+            const response = await Register({ 
+                username, 
+                email, 
+                password,
+                nation: 'VN' // Default nation
+            });
+            login(response.user, response.tokens);
+            setIsSignupModalOpen(false);
+            // Auto open create room modal after signup
+            setIsCreateModalOpen(true);
+        } catch (error: any) {
+            console.error('Signup error:', error);
+            // Error will be handled by SignupModal component
+            throw error; // Re-throw to let SignupModal handle it
         }
     };
 
@@ -263,9 +284,20 @@ const BattleShipPage = () => {
                 onClose={() => setIsLoginModalOpen(false)}
                 onLogin={handleLogin}
                 onSignupClick={() => {
-                    // TODO: Implement signup modal
-                    alert("Tính năng đăng ký sẽ được cập nhật sau");
+                    setIsLoginModalOpen(false);
+                    setIsSignupModalOpen(true);
                 }}
+            />
+
+            {/* Signup Modal */}
+            <SignupModal
+                isOpen={isSignupModalOpen}
+                onClose={() => setIsSignupModalOpen(false)}
+                onLoginClick={() => {
+                    setIsSignupModalOpen(false);
+                    setIsLoginModalOpen(true);
+                }}
+                onSignup={handleSignup}
             />
 
         </HomeLayout>
