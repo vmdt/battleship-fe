@@ -38,6 +38,7 @@ export function CreateRoomModal({ isOpen, onClose, onCreate }: CreateRoomModalPr
 
   return (
     <Modal
+      id="create-room-modal"
       isOpen={isOpen}
       onClose={onClose}
       title="Tạo phòng mới"

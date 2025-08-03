@@ -11,7 +11,7 @@ const HomeLayout = ({ children }: { children: React.ReactNode }) => {
             <div className="flex flex-1 flex-col">
             <Header onMenuClick={() => setSidebarOpen(true)} />
             <Tips />
-            <main className="flex-1 p-4">{children}</main>
+            <main className="flex-1 p-4" id="home-layout">{children}</main>
             </div>
         </div>
     )

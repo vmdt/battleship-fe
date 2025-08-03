@@ -10,12 +10,14 @@ import { RoomModel, RoomPlayerModel } from "@/models";
 import { Card } from "@/components/ui/card";
 import { CreateRoomModal } from "@/partials/battleship/home/create-room-modal";
 import { LoginModal } from "@/partials/auth/login-modal";
-import { Login } from "@/services/userService";
+import { SignupModal } from "@/partials/auth/signup-modal";
+import { Login, Register } from "@/services/userService";
 import { extractErrorMessage } from "@/lib/utils";
 import { Bot, Globe, Users } from "lucide-react";
 import { toast } from "sonner";
 import { CreateRoomOptions } from "@/partials/battleship/home/create-room-modal";
 import { CreateRoomPayload } from "@/models/room";
+import { withLoading } from "@/utils/loadingUtils";
 
 const GAME_ID = "battleship";
 
@@ -24,9 +26,12 @@ const BattleShipPage = () => {
     const [loading, setLoading] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
+    const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
     const { connect, getSocket } = useSocketStore();
     const { setRoom, setRoomId, setPlayerOne, setPlayerTwo, getMe, setMe } = useRoomStore();
     const { isLogin, login } = useUserStore();
+    const [isCreateNewRoom, setIsCreateNewRoom] = useState(false);
+    const { user } = useUserStore();
 
     useEffect(() => {
         setRoom(null);
@@ -34,21 +39,26 @@ const BattleShipPage = () => {
         setPlayerOne(null);
         setPlayerTwo(null);
         setMe(0);
-        if (!getSocket(GAME_ID)) {
-            connect(GAME_ID, getMe());
-        }
-        const socket = getSocket(GAME_ID)?.socket;
-        if (!socket) {
-            console.error("Socket connection failed");
-            return;
+        if (user) {
+            if (!getSocket(GAME_ID)) {
+                connect(GAME_ID, getMe(), {
+                    user_id: user?.id || null,
+                });
+            }
+            const socket = getSocket(GAME_ID)?.socket;
+            if (!socket) {
+                console.error("Socket connection failed");
+                return;
+            }
+
+            socket.emit("room:join", { roomId: `user:${user.id}` });
         }
 
-        socket.emit("room:join", { roomId: "user:test" });
-
-    }, [connect, getSocket]);
+    }, [isCreateNewRoom, user]);
 
     // Sửa lại handleCreateRoom để nhận options
     const handleCreateRoom = async (options: CreateRoomOptions, userId: string) => {
+        setIsCreateNewRoom(true);
         setLoading(true);
         try {
             // reset room
@@ -116,6 +126,25 @@ const BattleShipPage = () => {
             console.error('Login error:', error);
             // Error will be handled by LoginModal component
             throw error; // Re-throw to let LoginModal handle it
+        }
+    };
+
+    const handleSignup = async (username: string, email: string, password: string) => {
+        try {
+            const response = await Register({ 
+                username, 
+                email, 
+                password,
+                nation: 'VN' // Default nation
+            });
+            login(response.user, response.tokens);
+            setIsSignupModalOpen(false);
+            // Auto open create room modal after signup
+            setIsCreateModalOpen(true);
+        } catch (error: any) {
+            console.error('Signup error:', error);
+            // Error will be handled by SignupModal component
+            throw error; // Re-throw to let SignupModal handle it
         }
     };
 
@@ -255,9 +284,20 @@ const BattleShipPage = () => {
                 onClose={() => setIsLoginModalOpen(false)}
                 onLogin={handleLogin}
                 onSignupClick={() => {
-                    // TODO: Implement signup modal
-                    alert("Tính năng đăng ký sẽ được cập nhật sau");
+                    setIsLoginModalOpen(false);
+                    setIsSignupModalOpen(true);
                 }}
+            />
+
+            {/* Signup Modal */}
+            <SignupModal
+                isOpen={isSignupModalOpen}
+                onClose={() => setIsSignupModalOpen(false)}
+                onLoginClick={() => {
+                    setIsSignupModalOpen(false);
+                    setIsLoginModalOpen(true);
+                }}
+                onSignup={handleSignup}
             />
 
         </HomeLayout>

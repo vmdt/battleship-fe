@@ -14,6 +14,7 @@ interface ModalProps {
   contentClassName?: string;
   closeOnBackdropClick?: boolean;
   backdropType?: "default" | "solid" | "blur";
+  id?: string;
 }
 
 export function Modal({ 
@@ -26,7 +27,8 @@ export function Modal({
   className,
   contentClassName,
   closeOnBackdropClick = true,
-  backdropType = "default"
+  backdropType = "default",
+  id
 }: ModalProps) {
   if (!isOpen) return null;
 
@@ -46,7 +48,8 @@ export function Modal({
   }
 
   return (
-    <div 
+    <div
+      id={id}
       className={cn("fixed inset-0 flex items-center justify-center z-50", backdropClass, className)}
       onClick={handleBackdropClick}
     >

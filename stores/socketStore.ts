@@ -7,7 +7,7 @@ type SocketStore = {
         player: number;
         socket: Socket;
     }>>;
-    connect: (ns: string, player: number) => boolean;
+    connect: (ns: string, player: number, query?: any) => boolean;
     getSocket: (ns: string) => { player: number; socket: Socket } | null;
 }
 
@@ -15,13 +15,13 @@ export const useSocketStore = create<SocketStore>((set, get) => {
     return {
         sockets: {},
 
-        connect: (ns: string, player: number) => {
+        connect: (ns: string, player: number, query?: any) => {
             const existingSocket = get().sockets[ns];
             if (existingSocket) {
                 return false;
             }
 
-            const socket = connectSocket(ns);
+            const socket = connectSocket(ns, query);
             if (!socket) {
                 return false;
             }

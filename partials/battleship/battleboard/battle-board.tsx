@@ -4,11 +4,14 @@ import { useEffect, useState } from 'react';
 import ShipSquare from '@/components/Square/ShipSquare';
 import { Square } from '@/models/game';
 import { Ship } from '@/models/game/ship';
-import { attackBattleShip } from '@/services/battleshipService';
+import { attackBattleShip, getBattleShipBoard } from '@/services/battleshipService';
+import { setWhoWin } from '@/services/roomService';
 import { useRoomStore } from '@/stores/roomStore';
 import { useSocketStore } from '@/stores/socketStore';
 import { Socket } from 'socket.io-client';
 import { Chat } from '../chat/chat';
+import { useCountdownTimer, formatTime } from '@/hooks/useCountdownTimer';
+import { toast } from 'sonner';
 
 const BOARD_SIZE = 10;
 
@@ -27,18 +30,60 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
     const [opponentBoard, setOpponentBoard] = useState<Square[][]>(opponentBoardInit ?? createEmptyBoard());
     const [isMyTurn, setIsMyTurn] = useState(true);
     const [gameStatus, setGameStatus] = useState("Your turn");
-    const { getRoom, getPlayerOne, getPlayerTwo, getMe } = useRoomStore();
+    const [opponentShotAt, setOpponentShotAt] = useState<Date | undefined>(undefined);
+    const [timeoutHandled, setTimeoutHandled] = useState(false);
+    const { getRoom, getPlayerOne, getPlayerTwo, getMe, setRoom } = useRoomStore();
     const { getSocket } = useSocketStore();
-    const [turnSeconds, setTurnSeconds] = useState(30); // 30s mỗi lượt
 
-    // Đếm ngược thời gian cho mỗi lượt
+    // Get room options for turn timer
+    const room = getRoom();
+    const roomOptions = room?.options;
+    const timePerTurn = roomOptions?.time_per_turn || 30;
+    
+    // Initialize countdown timer using opponent_shot_at
+    const { timeLeft, isActive, isTimeout } = useCountdownTimer({
+      startPlaceAt: opponentShotAt,
+      timePlaceShip: timePerTurn
+    });
+
+    // Handle timeout
     useEffect(() => {
-        if (turnSeconds <= 0) return;
-        const timer = setInterval(() => setTurnSeconds(s => s - 1), 1000);
-        return () => clearInterval(timer);
-    }, [turnSeconds]);
-    // Reset timer khi đổi lượt
-    useEffect(() => { setTurnSeconds(30); }, [isMyTurn]);
+        if (isMyTurn && isTimeout && !timeoutHandled) {
+            const handleTimeout = async () => {
+                try {
+                    const room = getRoom();
+                    const player = getMe();
+                    let playerId = player === 1 ? getPlayerOne()?.player_id : getPlayerTwo()?.player_id;
+                    
+                    if (!room?.id || !playerId) return;
+                    
+                    // Call API to set who wins (opponent wins because current player timed out)
+                    const opponentPlayerId = player === 1 ? getPlayerTwo()?.player_id : getPlayerOne()?.player_id;
+                    if (opponentPlayerId) {
+                        const updatedRoom = await setWhoWin(room.id, opponentPlayerId);
+                        setRoom(updatedRoom);
+                        
+                        // Disable boards if game has ended
+                        if (updatedRoom.is_ended) {
+                            setGameStatus("Game ended");
+                        }
+                    }
+                    
+                    toast.error('Hết thời gian lượt đánh!', {
+                        duration: 3000,
+                        description: 'Lượt đánh của bạn đã hết thời gian.'
+                    });
+                    
+                    setTimeoutHandled(true);
+                } catch (error) {
+                    console.error('Error setting who wins on timeout:', error);
+                    toast.error('Có lỗi xảy ra khi xử lý timeout!');
+                }
+            };
+            
+            handleTimeout();
+        }
+    }, [isMyTurn, isTimeout, timeoutHandled, getRoom, getMe, getPlayerOne, getPlayerTwo, setRoom]);
 
     // Lấy thông tin player
     const playerOne = getPlayerOne();
@@ -71,7 +116,17 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
                 <div className="flex flex-col items-center mx-2 min-w-[90px]">
                     <span className="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-red-500 text-white text-lg font-extrabold shadow border-2 border-white dark:border-gray-800 mb-1">VS</span>
                     <span className={`text-sm font-semibold ${isMyTurn ? 'text-blue-600' : 'text-red-500'}`}>{isMyTurn ? 'Your Turn' : "Opponent's Turn"}</span>
-                    <span className="text-xs font-mono text-gray-700 dark:text-gray-200 mt-0.5">{turnSeconds}s</span>
+                    <span className={`text-xs font-mono mt-0.5 ${
+                        isMyTurn && isActive && opponentShotAt
+                            ? timeLeft <= 10 
+                                ? 'text-red-600 dark:text-red-400 animate-pulse' 
+                                : timeLeft <= 30 
+                                    ? 'text-orange-600 dark:text-orange-400' 
+                                    : 'text-gray-700 dark:text-gray-200'
+                            : 'text-gray-700 dark:text-gray-200'
+                    }`}>
+                        {isMyTurn && isActive && opponentShotAt ? formatTime(timeLeft) : '--:--'}
+                    </span>
                 </div>
                 {/* Player 2 */}
                 <div className="flex flex-col items-center min-w-[70px]">
@@ -94,10 +149,53 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
     useEffect(() => {
         const room = getRoom();
         if (room && typeof room.turn === 'number') {
-            setIsMyTurn(room.turn === getMe());
-            setGameStatus(room.turn === getMe() ? "Your turn" : "Opponent's turn");
+            const newIsMyTurn = room.turn === getMe();
+            setIsMyTurn(newIsMyTurn);
+            setGameStatus(newIsMyTurn ? "Your turn" : "Opponent's turn");
+            
+            // Reset timeout handled when turn changes
+            if (newIsMyTurn) {
+                setTimeoutHandled(false);
+            }
         }
     }, [getRoom, getMe]);
+
+    useEffect(() => {
+        const room = getRoom();
+        if (room && room.is_ended && room.who_win === getMe()) {
+            setGameStatus("Game ended");
+            toast.success('Chúc mừng! Bạn đã thắng cuộc!', {
+                duration: 5000,
+                description: 'Bạn đã đánh bại đối thủ trong trận chiến này.'
+            });
+        }
+    }, []);
+
+    // Fetch battle board data on component mount and when turn changes
+    useEffect(() => {
+        const fetchBattleBoard = async () => {
+            try {
+                const room = getRoom();
+                const player = getMe();
+                let playerId = player === 1 ? getPlayerOne()?.player_id : getPlayerTwo()?.player_id;
+                
+                if (!room?.id || !playerId) return;
+                
+                const data = await getBattleShipBoard(room.id, playerId);
+                console.log('Fetched battle board data:', data);
+                
+                // Update opponent_shot_at if available
+                if (data.opponent_shot_at) {
+                    setOpponentShotAt(new Date(data.opponent_shot_at));
+                }
+                
+            } catch (error) {
+                console.error('Error fetching battle board:', error);
+            }
+        };
+
+        fetchBattleBoard();
+    }, [getRoom, getMe, getPlayerOne, getPlayerTwo]);
 
     // State để kiểm soát trạng thái disconnect của đối phương trong trận
     const [opponentDisconnected, setOpponentDisconnected] = useState(false);
@@ -106,7 +204,7 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
     useEffect(() => {
         const socket = getSocket("battleship")?.socket as Socket;
 
-        const handleOpponentAttack = (data: {
+        const handleOpponentAttack = async (data: {
             event: string, 
             room_id: string, 
             player_id: string, 
@@ -123,7 +221,16 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
                 return newBoard;
             })
 
-            
+            // Fetch updated battle board data to get new opponent_shot_at
+            try {
+                const battleData = await getBattleShipBoard(data.room_id, data.player_id);
+                if (battleData.opponent_shot_at) {
+                    setOpponentShotAt(new Date(battleData.opponent_shot_at));
+                }
+            } catch (error) {
+                console.error('Error fetching battle board after opponent attack:', error);
+            }
+
             setTimeout(() => {
                 setIsMyTurn(true);
                 setGameStatus("Your turn");
@@ -137,19 +244,41 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
             setOpponentDisconnected(false);
         }
 
+        const handleEndgame = (payload: { player_id: string }) => {
+            const currentPlayerId = getMe() === 1 ? getPlayerOne()?.player_id : getPlayerTwo()?.player_id;
+            
+            // Set game ended to disable boards
+            setGameStatus("Game ended");
+            
+            if (payload.player_id === currentPlayerId) {
+                toast.success('Chúc mừng! Bạn đã thắng cuộc!', {
+                    duration: 5000,
+                    description: 'Bạn đã đánh bại đối thủ trong trận chiến này.'
+                });
+            } else {
+                toast.error('Bạn đã thua cuộc!', {
+                    duration: 5000,
+                    description: 'Đối thủ đã đánh bại bạn trong trận chiến này.'
+                });
+            }
+        }
+
         socket.on("battleship:attack", handleOpponentAttack);
         socket.on('user:disconnected', handleUserDisconnected);
         socket.on('user:reconnected', handleUserReconnected);
+        socket.on('room:endgame', handleEndgame);
+
         return () => {
             socket.off("battleship:attack", handleOpponentAttack);
             socket.off('user:disconnected', handleUserDisconnected);
             socket.off('user:reconnected', handleUserReconnected);
+            socket.off('room:endgame', handleEndgame);
         };
     }, [getSocket, getMe, getPlayerOne, getPlayerTwo]);
 
     const handleAttack = async (x: number, y: number) => {
-        // Chỉ cho phép bắn nếu là lượt của mình
-        if (!isMyTurn) return;
+        // Chỉ cho phép bắn nếu là lượt của mình và game chưa kết thúc
+        if (!isMyTurn || gameStatus === "Game ended") return;
 
         const targetSquare = opponentBoard[x][y];
         if (targetSquare.status === 'hit' || targetSquare.status === 'miss') {
@@ -233,7 +362,7 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
     const mainBoard = isMyTurn ? opponentBoard : myBoard;
     const mainBoardTitle = isMyTurn ? "Opponent's Board" : "Your Board";
 
-    const mainBoardClickHandler = isMyTurn && !opponentDisconnected ? handleAttack : () => {};
+    const mainBoardClickHandler = isMyTurn && !opponentDisconnected && gameStatus !== "Game ended" ? handleAttack : () => {};
 
     const secondaryBoard = isMyTurn ? myBoard : opponentBoard;
     const secondaryBoardTitle = isMyTurn ? "Your Board" : "Opponent's Board";

@@ -19,7 +19,7 @@ import { getBattleShipBoard } from '@/services/battleshipService';
 import { useUserStore } from '@/stores/userStore';
 import { LoginModal } from '@/partials/auth/login-modal';
 import { SignupModal } from '@/partials/auth/signup-modal';
-import { Login } from '@/services/userService';
+import { Login, Register } from '@/services/userService';
 import { toast } from 'sonner';
 import { extractErrorMessage } from '@/lib/utils';
 
@@ -56,16 +56,23 @@ export default function BattleShipPage() {
     };
 
     useEffect(() => {
-        if (!getSocket('battleship')?.socket) {
-            connect('battleship', getMe());
-        }
+        // if (!getSocket('battleship')?.socket) {
+        //     connect('battleship', getMe(), {
+        //         room_id: roomId,
+        //         user_id: user?.id || null
+        //     });
+        // }
+        connect('battleship', getMe(), {
+            room_id: roomId,
+            user_id: user?.id || null
+        });
 
         const socket = getSocket('battleship')?.socket as Socket;
         if (!socket) {
             console.error('Socket connection failed');
             return;
         }
-        socket.emit('room:join', { roomId: "user:test" });
+
         socket.emit('room:join', { roomId: roomId });
         socket.on('user:disconnected', (payload) => {
             console.log('User disconnected:', payload);
@@ -188,25 +195,23 @@ export default function BattleShipPage() {
     };
 
     const handleSignup = async (username: string, email: string, password: string) => {
-        // setAuthLoading(true);
-        // await new Promise(resolve => setTimeout(resolve, 1000));
-        // const mockUser = {
-        //     id: 'dbe1fcdc-cbbc-4312-a3a9-7bfb6aa4ef96',
-        //     user_name: username,
-        //     email,
-        //     nation: 'VN',
-        //     avatar: '',
-        //     created_at: new Date().toISOString(),
-        //     updated_at: new Date().toISOString()
-        // };
-        // const mockTokens = {
-        //     access_token: 'mock-access-token',
-        //     refresh_token: 'mock-refresh-token',
-        //     expires_in: 3600
-        // };
-        // login(mockUser, mockTokens);
-        // setAuthLoading(false);
-        // setShowSignup(false);
+        setAuthLoading(true);
+        try {
+            const response = await Register({ 
+                username, 
+                email, 
+                password,
+                nation: 'VN' // Default nation
+            });
+            login(response.user, response.tokens);
+            setShowSignup(false);
+        } catch (error: any) {
+            console.error('Signup error:', error);
+            // Error will be handled by SignupModal component
+            throw error; // Re-throw to let SignupModal handle it
+        } finally {
+            setAuthLoading(false);
+        }
     };
 
     const handleStartGame = (player: number) => {
