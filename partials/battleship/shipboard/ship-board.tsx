@@ -14,6 +14,8 @@ import { RoomPlayerStatus } from '@/models/player';
 import { updateRoomStatus } from "@/services/roomService"
 import { Chat } from '../chat/chat';
 import { useCountdownTimer, formatTime } from '@/hooks/useCountdownTimer';
+import { checkWhoWin } from '@/services/battleshipService';
+import { toast } from 'sonner';
 
 interface ShipBoardProps {
     onStart?: (board: Square[][], ships: Ship[], callback: Function) => void;
@@ -64,7 +66,7 @@ const ShipBoard = ({ onStart, setPhase }: ShipBoardProps) => {
     const BOARD_SIZE = 10;
     const router = useRouter();
     const { setPlacedShips } = useBoardStore();
-    const { getRoom, getPlayerOne, getPlayerTwo, setPlayerOne, setPlayerTwo } = useRoomStore();
+    const { getRoom, getPlayerOne, getPlayerTwo, setPlayerOne, setPlayerTwo, getMe } = useRoomStore();
 
     // Ship configurations
     const initialShips: Ship[] = [
@@ -90,6 +92,7 @@ const ShipBoard = ({ onStart, setPhase }: ShipBoardProps) => {
     const [hoverPosition, setHoverPosition] = useState<{ x: number; y: number } | null>(null);
     const { getSocket } = useSocketStore();
     const [waitingOther, setWaitingOther] = useState(false);
+    const [timeoutHandled, setTimeoutHandled] = useState(false);
 
     // Get room options for countdown timer
     const room = getRoom();
@@ -101,12 +104,56 @@ const ShipBoard = ({ onStart, setPhase }: ShipBoardProps) => {
       timePlaceShip: roomOptions?.time_place_ship || 120
     });
 
-    // Handle timeout - auto transition to battle phase
+    // Handle timeout - check win status and show toast
     useEffect(() => {
-      if (isTimeout && setPhase) {
-        // Auto transition to battle phase when timeout
+      if (isTimeout && setPhase && !timeoutHandled) {
+        setTimeoutHandled(true);
+        const handleTimeout = async () => {
+          try {
+            const room = getRoom();
+            if (!room?.id) return;
+            
+            const winResponse = await checkWhoWin(room.id);
+            const currentPlayerId = getMe() === 1 ? getPlayerOne()?.player_id : getPlayerTwo()?.player_id;
+            
+            // Find current player's status
+            const currentPlayerStatus = winResponse.win_status.find(
+              status => status.player_id === currentPlayerId
+            );
+            
+            if (currentPlayerStatus) {
+              if (!currentPlayerStatus.placed) {
+                // Player didn't finish placing ships - show lose toast
+                toast.info('Bạn đã thua! Không đặt xong tàu trong thời gian quy định.', {
+                  duration: 5000,
+                  description: `Thời gian đặt tàu: ${roomOptions?.time_place_ship || 120} giây. Game sẽ chuyển sang phase battle để xem kết quả.`
+                });
+              } else {
+                // Player finished placing ships but timeout - show info toast
+                toast.info('Hết thời gian đặt tàu! Chuyển sang phase battle.', {
+                  duration: 3000,
+                  description: 'Bạn đã đặt xong tàu trong thời gian quy định.'
+                });
+              }
+            }
+            
+            // Auto transition to battle phase after showing toast
+            // setTimeout(() => {
+            //   setPhase('battle');
+            // }, 3000);
+            
+          } catch (error) {
+            console.error('Error checking win status:', error);
+            // // Still transition to battle phase even if API fails
+            // setTimeout(() => {
+            //   setPhase('battle');
+            // }, 2000);
+          }
+        };
+        
+        handleTimeout();
       }
-    }, [isTimeout, setPhase]);
+    }, [isTimeout, setPhase, getRoom, getMe, getPlayerOne, getPlayerTwo, timeoutHandled]);
 
     // Handle rotation with R key
     useEffect(() => {

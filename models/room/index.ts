@@ -8,6 +8,8 @@ export interface RoomModel {
     status: string;
     turn?: number;
     options?: BattleshipOtions;
+    who_win?: number;
+    is_ended?: boolean;
     created_at: Date;
     updated_at: Date;
 }

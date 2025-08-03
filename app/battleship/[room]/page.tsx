@@ -56,16 +56,23 @@ export default function BattleShipPage() {
     };
 
     useEffect(() => {
-        if (!getSocket('battleship')?.socket) {
-            connect('battleship', getMe());
-        }
+        // if (!getSocket('battleship')?.socket) {
+        //     connect('battleship', getMe(), {
+        //         room_id: roomId,
+        //         user_id: user?.id || null
+        //     });
+        // }
+        connect('battleship', getMe(), {
+            room_id: roomId,
+            user_id: user?.id || null
+        });
 
         const socket = getSocket('battleship')?.socket as Socket;
         if (!socket) {
             console.error('Socket connection failed');
             return;
         }
-        socket.emit('room:join', { roomId: "user:test" });
+
         socket.emit('room:join', { roomId: roomId });
         socket.on('user:disconnected', (payload) => {
             console.log('User disconnected:', payload);

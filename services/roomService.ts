@@ -50,3 +50,10 @@ export async function updateBattleshipOptions(roomId: string, options: Battleshi
     });
     return result.data;
 }
+
+export async function setWhoWin(roomId: string, playerId: string): Promise<RoomModel> {
+    const result = await axios.put<RoomModel>(`${process.env.NEXT_PUBLIC_BASE_API_URL}/room/${roomId}/set-who-win`, {
+        player_id: playerId
+    });
+    return result.data;
+}

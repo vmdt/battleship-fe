@@ -33,7 +33,7 @@ export default function Lobby({ setPhase }: LobbyProps) {
     getMe 
   } = useRoomStore();
   
-  const { getSocket } = useSocketStore();
+  const { getSocket, connect } = useSocketStore();
   const router = useRouter();
 
   // Check if there is a second player
@@ -43,6 +43,8 @@ export default function Lobby({ setPhase }: LobbyProps) {
   const currentMe = getMe();
   const isPlayerOne = currentMe === 1;
   const isPlayerTwo = currentMe === 2;
+
+  const link = `${window.location.origin}/battleship/${getRoomFromStore()?.id}`;
 
   // Load room options from store
   useEffect(() => {
@@ -365,7 +367,7 @@ export default function Lobby({ setPhase }: LobbyProps) {
         </div>
       </div>
       <div className="flex justify-center mt-6">
-        <InviteQR link={`https://battleship.example.com/invite/${getRoomFromStore()?.id}`} />
+        <InviteQR link={link} />
       </div>
     </>
     );
@@ -454,7 +456,7 @@ export default function Lobby({ setPhase }: LobbyProps) {
         </div>
       </div>
       <div className="flex justify-center mt-6">
-        <InviteQR link={`https://battleship.example.com/invite/${getRoomFromStore()?.id}`} />
+        <InviteQR link={link} />
       </div>
     </>
     );
@@ -579,7 +581,7 @@ export default function Lobby({ setPhase }: LobbyProps) {
       </div>
     </div>
       <div className="flex justify-center mt-6">
-        <InviteQR link={`https://battleship.example.com/invite/${getRoomFromStore()?.id}`} />
+        <InviteQR link={link} />
       </div>
     </>
   );

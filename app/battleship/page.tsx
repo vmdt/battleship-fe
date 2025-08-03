@@ -16,6 +16,7 @@ import { Bot, Globe, Users } from "lucide-react";
 import { toast } from "sonner";
 import { CreateRoomOptions } from "@/partials/battleship/home/create-room-modal";
 import { CreateRoomPayload } from "@/models/room";
+import { withLoading } from "@/utils/loadingUtils";
 
 const GAME_ID = "battleship";
 
@@ -27,6 +28,8 @@ const BattleShipPage = () => {
     const { connect, getSocket } = useSocketStore();
     const { setRoom, setRoomId, setPlayerOne, setPlayerTwo, getMe, setMe } = useRoomStore();
     const { isLogin, login } = useUserStore();
+    const [isCreateNewRoom, setIsCreateNewRoom] = useState(false);
+    const { user } = useUserStore();
 
     useEffect(() => {
         setRoom(null);
@@ -34,21 +37,26 @@ const BattleShipPage = () => {
         setPlayerOne(null);
         setPlayerTwo(null);
         setMe(0);
-        if (!getSocket(GAME_ID)) {
-            connect(GAME_ID, getMe());
-        }
-        const socket = getSocket(GAME_ID)?.socket;
-        if (!socket) {
-            console.error("Socket connection failed");
-            return;
+        if (user) {
+            if (!getSocket(GAME_ID)) {
+                connect(GAME_ID, getMe(), {
+                    user_id: user?.id || null,
+                });
+            }
+            const socket = getSocket(GAME_ID)?.socket;
+            if (!socket) {
+                console.error("Socket connection failed");
+                return;
+            }
+
+            socket.emit("room:join", { roomId: `user:${user.id}` });
         }
 
-        socket.emit("room:join", { roomId: "user:test" });
-
-    }, [connect, getSocket]);
+    }, [isCreateNewRoom, user]);
 
     // Sửa lại handleCreateRoom để nhận options
     const handleCreateRoom = async (options: CreateRoomOptions, userId: string) => {
+        setIsCreateNewRoom(true);
         setLoading(true);
         try {
             // reset room
