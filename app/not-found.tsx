@@ -1,11 +1,9 @@
-import { NextIntlClientProvider } from 'next-intl';
-import { getLocale, getMessages } from 'next-intl/server';
-import { ThemeProvider } from "@/components/ThemeProvider";
+
+import { getMessages } from 'next-intl/server';
 import Link from 'next/link';
 import '@/app/globals.css';
 
 export default async function NotFound() {
-  const locale = await getLocale();
   const messages = await getMessages();
 
   const notFoundMessages = messages.NotFoundPage as Record<string, string> || {};

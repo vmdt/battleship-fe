@@ -1,9 +1,11 @@
     import React, { useRef, useState } from 'react';
     import {QRCodeSVG} from 'qrcode.react';
+    import { useTranslations } from "next-intl";
 
     export function InviteQR({ link = 'https://battleship.example.com/invite/abc123' }: { link?: string }) {
     const inputRef = useRef<HTMLInputElement>(null);
     const [copied, setCopied] = useState(false);
+    const t = useTranslations("InviteQR");
 
     const handleCopy = () => {
         if (inputRef.current) {
@@ -31,7 +33,7 @@
             <button
             onClick={handleCopy}
             className="p-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition"
-            title="Copy link"
+            title={t('copy_link')}
             >
             {/* Heroicons outline clipboard */}
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
@@ -39,7 +41,7 @@
             </svg>
             </button>
         </div>
-        {copied && <span className="mt-2 text-green-600 text-xs font-medium">Copied!</span>}
+        {copied && <span className="mt-2 text-green-600 text-xs font-medium">{t('copied')}</span>}
         </div>
     );
     }

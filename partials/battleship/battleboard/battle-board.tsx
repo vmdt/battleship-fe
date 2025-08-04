@@ -12,6 +12,7 @@ import { Socket } from 'socket.io-client';
 import { Chat } from '../chat/chat';
 import { useCountdownTimer, formatTime } from '@/hooks/useCountdownTimer';
 import { toast } from 'sonner';
+import { useTranslations } from "next-intl";
 
 const BOARD_SIZE = 10;
 
@@ -34,6 +35,7 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
     const [timeoutHandled, setTimeoutHandled] = useState(false);
     const { getRoom, getPlayerOne, getPlayerTwo, getMe, setRoom } = useRoomStore();
     const { getSocket } = useSocketStore();
+    const t = useTranslations("BattleBoard");
 
     // Get room options for turn timer
     const room = getRoom();
@@ -69,15 +71,15 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
                         }
                     }
                     
-                    toast.error('Hết thời gian lượt đánh!', {
+                    toast.error(t('turn_timeout'), {
                         duration: 3000,
-                        description: 'Lượt đánh của bạn đã hết thời gian.'
+                        description: t('turn_timeout_description')
                     });
                     
                     setTimeoutHandled(true);
                 } catch (error) {
                     console.error('Error setting who wins on timeout:', error);
-                    toast.error('Có lỗi xảy ra khi xử lý timeout!');
+                    toast.error(t('timeout_error'));
                 }
             };
             
@@ -109,13 +111,13 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
                     <span className="mt-1 text-sm font-semibold text-gray-800 dark:text-gray-100 max-w-[70px] truncate text-center">{playerOne?.player.name || 'Player 1'}</span>
                     <span className="flex items-center mt-1">
                         <span className={`w-2.5 h-2.5 rounded-full mr-1 ${!opponentDisconnected ? 'bg-green-500' : 'bg-red-500'}`}></span>
-                        <span className="text-xs text-gray-500">{!opponentDisconnected ? 'Connected' : 'Disconnected'}</span>
+                        <span className="text-xs text-gray-500">{!opponentDisconnected ? t('connected') : t('disconnected')}</span>
                     </span>
                 </div>
                 {/* VS + turn status + timer */}
                 <div className="flex flex-col items-center mx-2 min-w-[90px]">
                     <span className="w-10 h-10 flex items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-red-500 text-white text-lg font-extrabold shadow border-2 border-white dark:border-gray-800 mb-1">VS</span>
-                    <span className={`text-sm font-semibold ${isMyTurn ? 'text-blue-600' : 'text-red-500'}`}>{isMyTurn ? 'Your Turn' : "Opponent's Turn"}</span>
+                    <span className={`text-sm font-semibold ${isMyTurn ? 'text-blue-600' : 'text-red-500'}`}>{isMyTurn ? t('your_turn') : t('opponent_turn')}</span>
                     <span className={`text-xs font-mono mt-0.5 ${
                         isMyTurn && isActive && opponentShotAt
                             ? timeLeft <= 10 
@@ -138,7 +140,7 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
                     <span className="mt-1 text-sm font-semibold text-gray-800 dark:text-gray-100 max-w-[70px] truncate text-center">{playerTwo?.player.name || 'Player 2'}</span>
                     <span className="flex items-center mt-1">
                         <span className={`w-2.5 h-2.5 rounded-full mr-1 ${opponentDisconnected ? 'bg-red-500' : 'bg-green-500'}`}></span>
-                        <span className="text-xs text-gray-500">{opponentDisconnected ? 'Disconnected' : 'Connected'}</span>
+                        <span className="text-xs text-gray-500">{opponentDisconnected ? t('disconnected') : t('connected')}</span>
                     </span>
                 </div>
             </div>
@@ -151,7 +153,7 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
         if (room && typeof room.turn === 'number') {
             const newIsMyTurn = room.turn === getMe();
             setIsMyTurn(newIsMyTurn);
-            setGameStatus(newIsMyTurn ? "Your turn" : "Opponent's turn");
+            setGameStatus(newIsMyTurn ? t('your_turn') : t('opponent_turn'));
             
             // Reset timeout handled when turn changes
             if (newIsMyTurn) {
@@ -163,10 +165,10 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
     useEffect(() => {
         const room = getRoom();
         if (room && room.is_ended && room.who_win === getMe()) {
-            setGameStatus("Game ended");
-            toast.success('Chúc mừng! Bạn đã thắng cuộc!', {
+            setGameStatus(t('game_ended'));
+            toast.success(t('congratulations_win'), {
                 duration: 5000,
-                description: 'Bạn đã đánh bại đối thủ trong trận chiến này.'
+                description: t('win_description')
             });
         }
     }, []);
@@ -233,7 +235,7 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
 
             setTimeout(() => {
                 setIsMyTurn(true);
-                setGameStatus("Your turn");
+                setGameStatus(t('your_turn'));
             }, 1000);
         };
 
@@ -247,18 +249,18 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
         const handleEndgame = (payload: { player_id: string }) => {
             const currentPlayerId = getMe() === 1 ? getPlayerOne()?.player_id : getPlayerTwo()?.player_id;
             
-            // Set game ended to disable boards
-            setGameStatus("Game ended");
+                    // Set game ended to disable boards
+        setGameStatus(t('game_ended'));
             
             if (payload.player_id === currentPlayerId) {
-                toast.success('Chúc mừng! Bạn đã thắng cuộc!', {
+                toast.success(t('congratulations_win'), {
                     duration: 5000,
-                    description: 'Bạn đã đánh bại đối thủ trong trận chiến này.'
+                    description: t('win_description')
                 });
             } else {
-                toast.error('Bạn đã thua cuộc!', {
+                toast.error(t('you_lost'), {
                     duration: 5000,
-                    description: 'Đối thủ đã đánh bại bạn trong trận chiến này.'
+                    description: t('lose_description')
                 });
             }
         }
@@ -278,7 +280,7 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
 
     const handleAttack = async (x: number, y: number) => {
         // Chỉ cho phép bắn nếu là lượt của mình và game chưa kết thúc
-        if (!isMyTurn || gameStatus === "Game ended") return;
+        if (!isMyTurn || gameStatus === t('game_ended')) return;
 
         const targetSquare = opponentBoard[x][y];
         if (targetSquare.status === 'hit' || targetSquare.status === 'miss') {
@@ -294,7 +296,7 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
         // Đợi một chút rồi mới chuyển lượt
         setTimeout(() => {
             setIsMyTurn(false);
-            setGameStatus("Opponent's turn");
+            setGameStatus(t('opponent_turn'));
         }, 600);
     };
 
@@ -360,12 +362,12 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
     }, []);
 
     const mainBoard = isMyTurn ? opponentBoard : myBoard;
-    const mainBoardTitle = isMyTurn ? "Opponent's Board" : "Your Board";
+    const mainBoardTitle = isMyTurn ? t('opponent_board') : t('your_board');
 
-    const mainBoardClickHandler = isMyTurn && !opponentDisconnected && gameStatus !== "Game ended" ? handleAttack : () => {};
+    const mainBoardClickHandler = isMyTurn && !opponentDisconnected && gameStatus !== t('game_ended') ? handleAttack : () => {};
 
     const secondaryBoard = isMyTurn ? myBoard : opponentBoard;
-    const secondaryBoardTitle = isMyTurn ? "Your Board" : "Opponent's Board";
+    const secondaryBoardTitle = isMyTurn ? t('your_board') : t('opponent_board');
 
     return (
         <div className="relative p-4 md:p-6 flex flex-col md:flex-row font-sans min-h-screen">

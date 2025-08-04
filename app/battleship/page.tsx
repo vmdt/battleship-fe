@@ -12,17 +12,21 @@ import { CreateRoomModal } from "@/partials/battleship/home/create-room-modal";
 import { LoginModal } from "@/partials/auth/login-modal";
 import { SignupModal } from "@/partials/auth/signup-modal";
 import { Login, Register } from "@/services/userService";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { extractErrorMessage } from "@/lib/utils";
 import { Bot, Globe, Users } from "lucide-react";
 import { toast } from "sonner";
 import { CreateRoomOptions } from "@/partials/battleship/home/create-room-modal";
 import { CreateRoomPayload } from "@/models/room";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { withLoading } from "@/utils/loadingUtils";
+import { useTranslations } from "next-intl";
 
 const GAME_ID = "battleship";
 
 const BattleShipPage = () => {
     const router = useRouter();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [loading, setLoading] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -32,6 +36,7 @@ const BattleShipPage = () => {
     const { isLogin, login } = useUserStore();
     const [isCreateNewRoom, setIsCreateNewRoom] = useState(false);
     const { user } = useUserStore();
+    const t = useTranslations("BattleshipHome");
 
     useEffect(() => {
         setRoom(null);
@@ -99,8 +104,8 @@ const BattleShipPage = () => {
                     router.push(`/battleship/${payload.room_id}`);
                 }
             });
-        } catch (err) {
-            alert("Create room failed");
+        } catch {
+            alert(t("create_room_failed"));
         } finally {
             setLoading(false);
             setIsCreateModalOpen(false);
@@ -122,7 +127,7 @@ const BattleShipPage = () => {
             setIsLoginModalOpen(false);
             // Auto open create room modal after login
             setIsCreateModalOpen(true);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Login error:', error);
             // Error will be handled by LoginModal component
             throw error; // Re-throw to let LoginModal handle it
@@ -141,7 +146,7 @@ const BattleShipPage = () => {
             setIsSignupModalOpen(false);
             // Auto open create room modal after signup
             setIsCreateModalOpen(true);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Signup error:', error);
             // Error will be handled by SignupModal component
             throw error; // Re-throw to let SignupModal handle it
@@ -149,17 +154,17 @@ const BattleShipPage = () => {
     };
 
     const handlePlayWithAI = () => {
-        toast.info("Tính năng sẽ được cập nhật sau");
+        toast.info(t("feature_coming_soon"));
     }
 
     const handlePlayWithRandom = () => {
-        toast.info("Tính năng sẽ được cập nhật sau");
+        toast.info(t("feature_coming_soon"));
     }
 
     return (
         <HomeLayout>
             <div className="mt-[1rem] ml-[1rem]">
-                <span className="text-lg text-gray dark:text-white font-bold font-luckiest">Welcome back, Player!</span>
+                <span className="text-lg text-gray dark:text-white font-bold font-luckiest">{t("welcome_back")}</span>
             </div>
             <div className="flex flex-col md:flex-row mt-8 mx-4 md:gap-[5rem] gap-[3rem]">
                 <div className="flex-1">
@@ -178,7 +183,7 @@ const BattleShipPage = () => {
                                 className="flex items-center justify-center gap-4 p-[1.5rem] border bg-background shadow-xs rounded-md text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
                             >
                                 <Users className="text-teal-600 dark:text-teal-400" size={23} strokeWidth={3} />
-                                Play with a friend
+                                {t("play_with_friend")}
                             </button>
                             <button
                                 type="button"
@@ -186,7 +191,7 @@ const BattleShipPage = () => {
                                 className="flex items-center justify-center gap-4 p-[1.5rem] border bg-background shadow-xs rounded-md text-sm font-medium transition-all hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50"
                             >
                                 <Bot className="text-blue-600 dark:text-blue-400" size={23} strokeWidth={3} />
-                                Play with AI
+                                {t("play_with_ai")}
                             </button>
                             <button
                                 type="button"
@@ -195,8 +200,8 @@ const BattleShipPage = () => {
                             >
                                 <Globe className="text-purple-600 dark:text-purple-400" size={23} strokeWidth={3} />
                                 <div className="flex flex-col items-start">
-                                    <span>Play Online</span>
-                                    <span>with a random player</span>
+                                    <span>{t("play_online")}</span>
+                                    <span>{t("play_online_subtitle")}</span>
                                 </div>
                             </button>
                         </div>
@@ -209,7 +214,7 @@ const BattleShipPage = () => {
                                 <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" className="text-yellow-500" viewBox="0 0 24 24">
                                     <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                                 </svg>
-                                Leaderboard
+                                {t("leaderboard")}
                             </h2>
 
                             <div className="space-y-3">
@@ -261,7 +266,7 @@ const BattleShipPage = () => {
                                             <span className="font-bold text-lg text-gray-800 dark:text-white">
                                                 {player.score.toLocaleString()}
                                             </span>
-                                            <div className="text-xs text-gray-500 dark:text-gray-400">points</div>
+                                            <div className="text-xs text-gray-500 dark:text-gray-400">{t("points")}</div>
                                         </div>
                                     </div>
                                 ))}

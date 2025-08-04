@@ -6,6 +6,7 @@ import { Modal } from "@/components/ui/modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { extractErrorMessage } from "@/lib/utils";
+import { useTranslations } from "next-intl";
 
 type LoginModalProps = {
   isOpen: boolean;
@@ -29,13 +30,14 @@ export function LoginModal({
   const [showPassword, setShowPassword] = useState(false);
   const [isLoadingInternal, setIsLoadingInternal] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const t = useTranslations("Auth");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage(""); // Clear previous error
     
     if (!email.trim() || !password.trim()) {
-      setErrorMessage("Vui lòng nhập đầy đủ thông tin");
+      setErrorMessage(t("please_fill_all"));
       return;
     }
     
@@ -52,7 +54,7 @@ export function LoginModal({
 
   const handleForgotPassword = () => {
     // TODO: Implement forgot password functionality
-    alert("Tính năng quên mật khẩu sẽ được cập nhật sau");
+    alert(t("forgot_password_coming_soon"));
   };
 
   // Sử dụng isLoading từ prop hoặc internal state
@@ -62,20 +64,20 @@ export function LoginModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Đăng nhập"
+      title={t("login")}
       closeOnBackdropClick={false}
       backdropType="blur"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Email Input */}
         <div className="space-y-2">
-          <Label htmlFor="email">Email *</Label>
+          <Label htmlFor="email">{t("email_required")}</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
               id="email"
               type="email"
-              placeholder="Nhập email của bạn"
+              placeholder={t("email_placeholder")}
               value={email}
               onChange={(e) => {
                 setEmail(e.target.value);
@@ -90,13 +92,13 @@ export function LoginModal({
 
         {/* Password Input */}
         <div className="space-y-2">
-          <Label htmlFor="password">Mật khẩu *</Label>
+          <Label htmlFor="password">{t("password_required")}</Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
-              placeholder="Nhập mật khẩu"
+              placeholder={t("password_placeholder")}
               value={password}
               onChange={(e) => {
                 setPassword(e.target.value);
@@ -134,7 +136,7 @@ export function LoginModal({
             className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
             disabled={isFormLoading}
           >
-            Quên mật khẩu?
+            {t("forgot_password")}
           </button>
         </div>
 
@@ -144,7 +146,7 @@ export function LoginModal({
           className="w-full" 
           disabled={isFormLoading}
         >
-          {isFormLoading ? "Đang đăng nhập..." : "Đăng nhập"}
+          {isFormLoading ? t("logging_in") : t("login_button")}
         </Button>
 
         {/* Divider */}
@@ -153,7 +155,7 @@ export function LoginModal({
             <span className="w-full border-t" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-white dark:bg-gray-800 px-2 text-gray-500">Hoặc</span>
+            <span className="bg-white dark:bg-gray-800 px-2 text-gray-500">{t("or")}</span>
           </div>
         </div>
 
@@ -172,7 +174,7 @@ export function LoginModal({
               <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
               <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-            Tiếp tục với Google
+            {t("continue_with_google")}
           </Button>
         )}
 
@@ -182,7 +184,7 @@ export function LoginModal({
           variant="outline"
           onClick={() => {
             // TODO: Implement Google OAuth
-            alert("Tính năng đăng nhập Google sẽ được cập nhật sau");
+            alert(t("google_login_coming_soon"));
           }}
           className="w-full"
           disabled={isFormLoading}
@@ -193,13 +195,13 @@ export function LoginModal({
             <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
             <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-          Continue with Google
+          {t("continue_with_google")}
         </Button>
 
         {/* Signup Link */}
         <div className="text-center">
           <span className="text-sm text-gray-600 dark:text-gray-400">
-            Chưa có tài khoản?{" "}
+            {t("no_account")}{" "}
           </span>
           <button
             type="button"
@@ -207,7 +209,7 @@ export function LoginModal({
             className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
             disabled={isFormLoading}
           >
-            Đăng ký ngay
+            {t("signup_now")}
           </button>
         </div>
       </form>

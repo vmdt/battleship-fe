@@ -27,6 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useTranslations } from 'next-intl'
 
 import LocaleSwitcher from '@/components/LocaleSwitcher'
 import { ModeToggle } from '@/components/ThemeToggle'
@@ -35,21 +36,20 @@ import { useUserStore } from '@/stores/userStore'
 import { LoginModal } from '@/partials/auth/login-modal'
 import { SignupModal } from '@/partials/auth/signup-modal'
 import { Login, Register } from '@/services/userService'
-import { extractErrorMessage } from '@/lib/utils'
 
 const menuItems = [
-  { icon: Home, label: 'Trang chủ' },
-  { icon: MessageCircle, label: 'Nhắn tin' },
-  { icon: Users, label: 'Bạn bè' },
-  { icon: History, label: 'Lịch sử' },
-  { icon: ShoppingCart, label: 'Cửa hàng' },
-  { icon: Gift, label: 'Vật phẩm' },
+  { icon: Home, labelKey: 'home' },
+  { icon: MessageCircle, labelKey: 'messages' },
+  { icon: Users, labelKey: 'friends' },
+  { icon: History, labelKey: 'history' },
+  { icon: ShoppingCart, labelKey: 'store' },
+  { icon: Gift, labelKey: 'items' },
 ]
 
 const gruppoItems = [
-  { icon: PlusCircle, label: 'Tạo giải đấu' },
-  { icon: Trophy, label: 'Giải đấu của tôi' },
-  { icon: DollarSign, label: 'Giá cả' },
+  { icon: PlusCircle, labelKey: 'create_tournament' },
+  { icon: Trophy, labelKey: 'my_tournaments' },
+  { icon: DollarSign, labelKey: 'pricing' },
 ]
 
 interface SidebarProps {
@@ -64,6 +64,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const [isSignupModalOpen, setIsSignupModalOpen] = useState(false)
   const isMobile = useMediaQuery('(max-width: 767px)')
   const router = useRouter()
+  const t = useTranslations('Sidebar')
 
   const isEffectivelyCollapsed = !isMobile && isMenuCollapsed;
 
@@ -72,7 +73,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       const response = await Login({ email, password });
       login(response.user, response.tokens);
       setIsLoginModalOpen(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Login error:', error);
       // Error will be handled by LoginModal component
       throw error; // Re-throw to let LoginModal handle it
@@ -93,7 +94,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       });
       login(response.user, response.tokens);
       setIsSignupModalOpen(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Signup error:', error);
       // Error will be handled by SignupModal component
       throw error; // Re-throw to let SignupModal handle it
@@ -110,11 +111,11 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     setIsLoginModalOpen(true);
   };
 
-  const handleMenuClick = (label: string) => {
-    if (label === 'Trang chủ') {
+  const handleMenuClick = (labelKey: string) => {
+    if (labelKey === 'home') {
       router.push('/');
     } else {
-      toast.info(`Tính năng "${label}" sẽ được cập nhật sau`);
+      toast.info(t('feature_coming_soon', { feature: t(labelKey) }));
     }
   };
 
@@ -140,7 +141,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         <div className="flex-1 overflow-y-auto p-2">
           {/* Header for mobile with close button */}
           <div className="mb-4 flex items-center justify-between md:hidden">
-              <span className="text-lg font-semibold">Menu</span>
+              <span className="text-lg font-semibold">{t('menu')}</span>
               <Button variant="ghost" size="icon" onClick={onClose}>
                   <X className="h-6 w-6" />
               </Button>
@@ -168,7 +169,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     <DropdownMenuContent align="start" className="w-48">
                       <DropdownMenuItem className="flex items-center gap-2" onClick={handleLogout}>
                         <LogOut size={16} />
-                        <span>Đăng xuất</span>
+                        <span>{t('logout')}</span>
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -181,7 +182,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                     />
                     <div className="leading-tight">
                       <p className="text-sm font-medium">{user?.username || "User"}</p>
-                      <p className="text-xs text-muted-foreground">2000 🪙</p>
+                      <p className="text-xs text-muted-foreground">{t('coins')}</p>
                     </div>
                   </>
                 )}
@@ -208,7 +209,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                       onClick={() => setIsLoginModalOpen(true)}
                       className="text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                     >
-                      Đăng nhập
+                      {t('login')}
                     </Button>
                   </>
                 )}
@@ -218,18 +219,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
           {/* Menu Items */}
           <div className="mt-2 space-y-1">
-            {menuItems.map(({ icon: Icon, label }) => (
+            {menuItems.map(({ icon: Icon, labelKey }) => (
               <Button
-                key={label}
+                key={labelKey}
                 variant="ghost"
-                onClick={() => handleMenuClick(label)}
+                onClick={() => handleMenuClick(labelKey)}
                 className={cn(
                   'w-full flex items-center gap-3 justify-start',
                   'px-3 py-2 rounded transition-colors hover:bg-muted'
                 )}
               >
                 <Icon size={20} />
-                {!isEffectivelyCollapsed && <span>{label}</span>}
+                {!isEffectivelyCollapsed && <span>{t(labelKey)}</span>}
               </Button>
             ))}
           </div>
@@ -237,21 +238,21 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* Gruppo Section */}
           <div className="mt-6">
             {!isEffectivelyCollapsed && (
-              <div className="px-3 mb-2 text-xs font-semibold text-muted-foreground">Gruppo</div>
+              <div className="px-3 mb-2 text-xs font-semibold text-muted-foreground">{t('gruppo')}</div>
             )}
             <div className="space-y-1">
-              {gruppoItems.map(({ icon: Icon, label }) => (
+              {gruppoItems.map(({ icon: Icon, labelKey }) => (
                 <Button
-                  key={label}
+                  key={labelKey}
                   variant="ghost"
-                  onClick={() => toast.info(`Tính năng "${label}" sẽ được cập nhật sau`)}
+                  onClick={() => toast.info(t('feature_coming_soon', { feature: t(labelKey) }))}
                   className={cn(
                     'w-full flex items-center gap-3 justify-start',
                     'px-3 py-2 rounded transition-colors hover:bg-muted'
                   )}
                 >
                   <Icon size={20} />
-                  {!isEffectivelyCollapsed && <span>{label}</span>}
+                  {!isEffectivelyCollapsed && <span>{t(labelKey)}</span>}
                 </Button>
               ))}
             </div>
@@ -266,7 +267,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 className="w-full flex items-center gap-3 justify-start px-3 py-2 rounded transition-colors hover:bg-red-100 dark:hover:bg-red-900/20 text-red-600 dark:text-red-400"
               >
                 <X size={20} />
-                <span>Đăng xuất</span>
+                <span>{t('logout')}</span>
               </Button>
             </div>
           )}

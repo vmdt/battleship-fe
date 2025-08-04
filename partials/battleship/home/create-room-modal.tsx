@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Modal } from "@/components/ui/modal";
 import { useUserStore } from "@/stores/userStore";
+import { useTranslations } from "next-intl";
 
 export type CreateRoomOptions = {
   displayName: string;
@@ -25,6 +26,7 @@ export function CreateRoomModal({ isOpen, onClose, onCreate }: CreateRoomModalPr
   const [whoPlayFirst, setWhoPlayFirst] = useState("random");
   const [placingTime, setPlacingTime] = useState("120");
   const { user } = useUserStore();
+  const t = useTranslations("CreateRoomModal");
 
   const handleCreate = () => {
     const displayName = user?.username || "Guest";
@@ -41,15 +43,15 @@ export function CreateRoomModal({ isOpen, onClose, onCreate }: CreateRoomModalPr
       id="create-room-modal"
       isOpen={isOpen}
       onClose={onClose}
-      title="Tạo phòng mới"
+      title={t("title")}
       contentClassName="border-2"
       footer={
         <>
           <Button variant="outline" onClick={onClose}>
-            Hủy
+            {t("cancel")}
           </Button>
           <Button onClick={handleCreate}>
-            Tạo phòng
+            {t("create_room")}
           </Button>
         </>
       }
@@ -58,49 +60,49 @@ export function CreateRoomModal({ isOpen, onClose, onCreate }: CreateRoomModalPr
           {/* Pannel Options */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg font-medium text-gray-900 dark:text-white">Options</CardTitle>
+              <CardTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("options")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="timePerTurn">Thời gian mỗi lượt</Label>
+                <Label htmlFor="timePerTurn">{t("time_per_turn")}</Label>
                 <Select value={timePerTurn} onValueChange={setTimePerTurn}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Chọn thời gian" />
+                    <SelectValue placeholder={t("time_per_turn_placeholder")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="15">15 giây</SelectItem>
-                    <SelectItem value="30">30 giây</SelectItem>
-                    <SelectItem value="60">1 phút</SelectItem>
-                    <SelectItem value="120">2 phút</SelectItem>
+                    <SelectItem value="15">{t("15_seconds")}</SelectItem>
+                    <SelectItem value="30">{t("30_seconds")}</SelectItem>
+                    <SelectItem value="60">{t("1_minute")}</SelectItem>
+                    <SelectItem value="120">{t("2_minutes")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="whoPlayFirst">Ai chơi trước</Label>
+                <Label htmlFor="whoPlayFirst">{t("who_plays_first")}</Label>
                 <Select value={whoPlayFirst} onValueChange={setWhoPlayFirst}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Chọn người chơi trước" />
+                    <SelectValue placeholder={t("who_plays_first_placeholder")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="random">Ngẫu nhiên</SelectItem>
-                    <SelectItem value="host">Chủ phòng</SelectItem>
-                    <SelectItem value="guest">Người tham gia</SelectItem>
+                    <SelectItem value="random">{t("random")}</SelectItem>
+                    <SelectItem value="host">{t("host")}</SelectItem>
+                    <SelectItem value="guest">{t("guest")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="placingTime">Thời gian đặt tàu</Label>
+                <Label htmlFor="placingTime">{t("ship_placing_time")}</Label>
                 <Select value={placingTime} onValueChange={setPlacingTime}>
                   <SelectTrigger>
-                    <SelectValue placeholder="Chọn thời gian đặt tàu" />
+                    <SelectValue placeholder={t("ship_placing_time_placeholder")} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="60">1 phút</SelectItem>
-                    <SelectItem value="120">2 phút</SelectItem>
-                    <SelectItem value="180">3 phút</SelectItem>
-                    <SelectItem value="300">5 phút</SelectItem>
+                    <SelectItem value="60">{t("1_minute")}</SelectItem>
+                    <SelectItem value="120">{t("2_minutes")}</SelectItem>
+                    <SelectItem value="180">{t("3_minutes")}</SelectItem>
+                    <SelectItem value="300">{t("5_minutes")}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

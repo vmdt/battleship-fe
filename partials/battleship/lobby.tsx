@@ -10,6 +10,7 @@ import { useUserStore } from '@/stores/userStore';
 import { LoginModal } from '@/partials/auth/login-modal';
 import { BattleshipOtions } from "@/models";
 import { withLoading } from '@/utils/loadingUtils';
+import { useTranslations } from "next-intl";
 
 interface LobbyProps {
   setPhase: (phase: 'lobby' | 'setup') => void;
@@ -35,6 +36,7 @@ export default function Lobby({ setPhase }: LobbyProps) {
   
   const { getSocket, connect } = useSocketStore();
   const router = useRouter();
+  const t = useTranslations("BattleshipLobby");
 
   // Check if there is a second player
   const hasPlayerTwo = !!playerTwo;
@@ -156,7 +158,7 @@ export default function Lobby({ setPhase }: LobbyProps) {
         setMe(0);
         
         // Show toast notification
-        alert('Bạn đã bị chủ phòng kick!');
+        alert(t('you_were_kicked'));
         
         // Navigate back to battleship page
         router.push('/battleship');
@@ -264,58 +266,58 @@ export default function Lobby({ setPhase }: LobbyProps) {
               unoptimized
             />
             <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
-              Host
+              {t('host')}
             </div>
             {/* Disconnect overlay cho Player 1 */}
             {isPlayerDisconnected(1) && (
               <div className="absolute inset-0 bg-gray-400 rounded-full flex items-center justify-center">
-                <div className="text-white text-xs font-bold">DISCONNECT</div>
+                <div className="text-white text-xs font-bold">{t('disconnected')}</div>
               </div>
             )}
           </div>
           <div className="mt-2 font-semibold text-lg text-zinc-800 dark:text-zinc-100">{getPlayerOne()?.player.name || "Player 1"}</div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">Level 1</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">{t('level')} 1</div>
         </div>
 
         {/* Game Options - Player 1 Controls */}
         <div className="flex flex-col items-center w-2/4 loading-overlay">
           <div className="mb-4 space-y-2">
             <div>
-              <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Thời gian mỗi lượt:</label>
+              <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">{t('time_per_turn')}</label>
               <select 
                 className="border rounded px-2 py-1 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 border-gray-300 dark:border-zinc-700"
                 value={editingOptions?.time_per_turn || 30}
                 onChange={(e) => handleOptionChange('time_per_turn', Number(e.target.value))}
               >
-                <option value={15}>15 giây</option>
-                <option value={30}>30 giây</option>
-                <option value={60}>1 phút</option>
-                <option value={120}>2 phút</option>
+                <option value={15}>15 {t('seconds')}</option>
+                <option value={30}>30 {t('seconds')}</option>
+                <option value={60}>1 {t('1_minute')}</option>
+                <option value={120}>2 {t('2_minutes')}</option>
               </select>
             </div>
             <div>
-              <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Thời gian đặt tàu:</label>
+              <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">{t('ship_placing_time')}</label>
               <select 
                 className="border rounded px-2 py-1 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 border-gray-300 dark:border-zinc-700"
                 value={editingOptions?.time_place_ship || 120}
                 onChange={(e) => handleOptionChange('time_place_ship', Number(e.target.value))}
               >
-                <option value={60}>1 phút</option>
-                <option value={120}>2 phút</option>
-                <option value={180}>3 phút</option>
-                <option value={300}>5 phút</option>
+                <option value={60}>1 {t('1_minute')}</option>
+                <option value={120}>2 {t('2_minutes')}</option>
+                <option value={180}>3 {t('3_minutes')}</option>
+                <option value={300}>5 {t('5_minutes')}</option>
               </select>
             </div>
             <div>
-              <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Người đi trước:</label>
+              <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">{t('who_goes_first')}</label>
               <select 
                 className="border rounded px-2 py-1 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 border-gray-300 dark:border-zinc-700"
                 value={editingOptions?.who_go_first || 0}
                 onChange={(e) => handleOptionChange('who_go_first', Number(e.target.value))}
               >
-                <option value={0}>Ngẫu nhiên</option>
-                <option value={1}>Chủ phòng</option>
-                <option value={2}>Khách</option>
+                <option value={0}>{t('random')}</option>
+                <option value={1}>{t('host_player')}</option>
+                <option value={2}>{t('guest_player')}</option>
               </select>
             </div>
           </div>
@@ -323,7 +325,7 @@ export default function Lobby({ setPhase }: LobbyProps) {
             className="bg-blue-600 dark:bg-blue-700 text-white px-6 py-2 rounded font-bold hover:bg-blue-700 dark:hover:bg-blue-800 transition"
             onClick={handleStartGame}
           >
-            Bắt đầu trò chơi
+            {t('start_game')}
           </button>
         </div>
 
@@ -334,7 +336,7 @@ export default function Lobby({ setPhase }: LobbyProps) {
             <button
               className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center bg-red-600 dark:bg-red-700 text-white rounded-full shadow hover:bg-red-700 dark:hover:bg-red-800 transition z-10"
               onClick={() => handleKickPlayer(2)}
-              title="Kích người chơi 2"
+              title={t('kick_player')}
             >
               <span className="text-lg leading-none">×</span>
             </button>
@@ -350,17 +352,17 @@ export default function Lobby({ setPhase }: LobbyProps) {
               {/* Disconnect overlay cho Player 2 */}
               {isPlayerDisconnected(2) && (
                 <div className="absolute inset-0 bg-gray-400 rounded-full flex items-center justify-center">
-                  <div className="text-white text-xs font-bold">DISCONNECT</div>
+                  <div className="text-white text-xs font-bold">{t('disconnected')}</div>
                 </div>
               )}
             </div>
             <div className="mt-2 font-semibold text-lg text-zinc-800 dark:text-zinc-100">{getPlayerTwo()?.player.name || "Player 2"}</div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">Level 1</div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">{t('level')} 1</div>
             <div className="text-xs text-green-600 dark:text-green-400 mt-1">
               {isPlayerDisconnected(2) ? (
-                <span className="text-red-600 dark:text-red-400">DISCONNECT</span>
+                <span className="text-red-600 dark:text-red-400">{t('disconnected')}</span>
               ) : (
-                "Đã tham gia"
+                t('joined')
               )}
             </div>
           </div>
@@ -390,44 +392,44 @@ export default function Lobby({ setPhase }: LobbyProps) {
               unoptimized
             />
             <div className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
-              Host
+              {t('host')}
             </div>
             {/* Disconnect overlay cho Player 1 */}
             {isPlayerDisconnected(1) && (
               <div className="absolute inset-0 bg-gray-400 bg-opacity-80 rounded-full flex items-center justify-center">
-                <div className="text-white text-xs font-bold">DISCONNECT</div>
+                <div className="text-white text-xs font-bold">{t('disconnected')}</div>
               </div>
             )}
           </div>
           <div className="mt-2 font-semibold text-lg text-zinc-800 dark:text-zinc-100">{getPlayerOne()?.player.name || "Player 1"}</div>
-          <div className="text-sm text-gray-500 dark:text-gray-400">Level 1</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">{t('level')} 1</div>
         </div>
 
         {/* Game Options - Player 2 Controls */}
         <div className="flex flex-col items-center w-2/4">
           <div className="mb-4 space-y-2">
             <div>
-              <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Thời gian mỗi lượt:</label>
+              <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">{t('time_per_turn')}</label>
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                {roomOptions?.time_per_turn || 30} giây
+                {roomOptions?.time_per_turn || 30} {t('seconds')}
               </span>
             </div>
             <div>
-              <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Thời gian đặt tàu:</label>
+              <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">{t('ship_placing_time')}</label>
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                {roomOptions?.time_place_ship || 120} giây
+                {roomOptions?.time_place_ship || 120} {t('seconds')}
               </span>
             </div>
             <div>
-              <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Người đi trước:</label>
+              <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">{t('who_goes_first')}</label>
               <span className="text-sm text-gray-600 dark:text-gray-400">
-                {roomOptions?.who_go_first === 1 ? 'Chủ phòng' : 
-                 roomOptions?.who_go_first === 2 ? 'Khách' : 'Ngẫu nhiên'}
+                {roomOptions?.who_go_first === 1 ? t('host_player') : 
+                 roomOptions?.who_go_first === 2 ? t('guest_player') : t('random')}
               </span>
             </div>
-            <span className="text-xs text-gray-500">(Chỉ host mới có thể thay đổi)</span>
+            <span className="text-xs text-gray-500">{t('only_host_can_change')}</span>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">Chờ host bắt đầu trò chơi...</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-2">{t('waiting_for_host')}</p>
         </div>
 
         {/* Player 2 (Current User) - Không có nút kích */}
@@ -445,13 +447,13 @@ export default function Lobby({ setPhase }: LobbyProps) {
               {/* Disconnect overlay cho Player 2 */}
               {isPlayerDisconnected(2) && (
                 <div className="absolute inset-0 bg-gray-400 rounded-full flex items-center justify-center">
-                  <div className="text-white text-xs font-bold">DISCONNECT</div>
+                  <div className="text-white text-xs font-bold">{t('disconnected')}</div>
                 </div>
               )}
             </div>
             <div className="mt-2 font-semibold text-lg text-zinc-800 dark:text-zinc-100">{getPlayerTwo()?.player.name || "Player 2"}</div>
-            <div className="text-sm text-gray-500 dark:text-gray-400">Level 1</div>
-            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">Bạn</div>
+            <div className="text-sm text-gray-500 dark:text-gray-400">{t('level')} 1</div>
+            <div className="text-xs text-blue-600 dark:text-blue-400 mt-1">{t('you')}</div>
           </div>
         </div>
       </div>
@@ -492,41 +494,41 @@ export default function Lobby({ setPhase }: LobbyProps) {
         <div id="options-panel" className="flex flex-col items-center w-2/4 loading-overlay">
         <div className="mb-4 space-y-2">
           <div>
-            <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Thời gian mỗi lượt:</label>
+            <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">{t('time_per_turn')}</label>
             <select 
               className="border rounded px-2 py-1 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 border-gray-300 dark:border-zinc-700"
               value={editingOptions?.time_per_turn || 30}
               onChange={(e) => handleOptionChange('time_per_turn', Number(e.target.value))}
             >
-              <option value={15}>15 giây</option>
-              <option value={30}>30 giây</option>
-              <option value={60}>1 phút</option>
-              <option value={120}>2 phút</option>
+              <option value={15}>15 {t('seconds')}</option>
+              <option value={30}>30 {t('seconds')}</option>
+              <option value={60}>1 {t('1_minute')}</option>
+              <option value={120}>2 {t('2_minutes')}</option>
             </select>
           </div>
           <div>
-            <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Thời gian đặt tàu:</label>
+            <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">{t('ship_placing_time')}</label>
             <select 
               className="border rounded px-2 py-1 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 border-gray-300 dark:border-zinc-700"
               value={editingOptions?.time_place_ship || 120}
               onChange={(e) => handleOptionChange('time_place_ship', Number(e.target.value))}
             >
-              <option value={60}>1 phút</option>
-              <option value={120}>2 phút</option>
-              <option value={180}>3 phút</option>
-              <option value={300}>5 phút</option>
+              <option value={60}>1 {t('1_minute')}</option>
+              <option value={120}>2 {t('2_minutes')}</option>
+              <option value={180}>3 {t('3_minutes')}</option>
+              <option value={300}>5 {t('5_minutes')}</option>
             </select>
           </div>
           <div>
-            <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">Người đi trước:</label>
+            <label className="font-medium mr-2 text-zinc-800 dark:text-zinc-100">{t('who_goes_first')}</label>
             <select 
               className="border rounded px-2 py-1 bg-white dark:bg-zinc-800 text-zinc-800 dark:text-zinc-100 border-gray-300 dark:border-zinc-700"
               value={editingOptions?.who_go_first || 0}
               onChange={(e) => handleOptionChange('who_go_first', Number(e.target.value))}
             >
-              <option value={0}>Ngẫu nhiên</option>
-              <option value={1}>Chủ phòng</option>
-              <option value={2}>Khách</option>
+              <option value={0}>{t('random')}</option>
+              <option value={1}>{t('host_player')}</option>
+              <option value={2}>{t('guest_player')}</option>
             </select>
           </div>
           </div>
@@ -541,7 +543,7 @@ export default function Lobby({ setPhase }: LobbyProps) {
               <button
                 className="absolute -top-2 -right-2 w-6 h-6 flex items-center justify-center bg-red-600 dark:bg-red-700 text-white rounded-full shadow hover:bg-red-700 dark:hover:bg-red-800 transition z-10"
                 onClick={() => handleKickPlayer(2)}
-                title="Kích"
+                title={t('kick_player')}
               >
                 <span className="text-lg leading-none">×</span>
               </button>
@@ -557,12 +559,12 @@ export default function Lobby({ setPhase }: LobbyProps) {
                 {/* Disconnect overlay cho Player 2 */}
                 {isPlayerDisconnected(2) && (
                   <div className="absolute inset-0 bg-gray-400 rounded-full flex items-center justify-center">
-                    <div className="text-white text-xs font-bold">DISCONNECT</div>
+                    <div className="text-white text-xs font-bold">{t('disconnected')}</div>
                   </div>
                 )}
               </div>
               <div className="mt-2 font-semibold text-lg text-zinc-800 dark:text-zinc-100">{getPlayerTwo()?.player.name || "Player 2"}</div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">Level 1</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400">{t('level')} 1</div>
             </div>
           </>
         ) : (
@@ -571,9 +573,9 @@ export default function Lobby({ setPhase }: LobbyProps) {
               ?
             </div>
             <div className="ml-4">
-              <div className="mb-2 text-gray-500 dark:text-gray-400">Chưa có người chơi</div>
+              <div className="mb-2 text-gray-500 dark:text-gray-400">{t('no_player')}</div>
               <button className="bg-green-600 dark:bg-green-700 text-white px-4 py-1 rounded font-bold hover:bg-green-700 dark:hover:bg-green-800 transition">
-                Mời bạn bè
+                {t('invite_friends')}
               </button>
             </div>
           </>
