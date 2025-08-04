@@ -19,7 +19,7 @@ import { toast } from 'sonner';
 import { useTranslations } from "next-intl";
 
 interface ShipBoardProps {
-    onStart?: (board: Square[][], ships: Ship[], callback: Function) => void;
+    onStart?: (board: Square[][], ships: Ship[], callback: () => void) => void;
     setPhase?: (phase: 'lobby' | 'setup' | 'battle') => void;
 }
 

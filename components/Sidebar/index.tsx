@@ -36,7 +36,6 @@ import { useUserStore } from '@/stores/userStore'
 import { LoginModal } from '@/partials/auth/login-modal'
 import { SignupModal } from '@/partials/auth/signup-modal'
 import { Login, Register } from '@/services/userService'
-import { extractErrorMessage } from '@/lib/utils'
 
 const menuItems = [
   { icon: Home, labelKey: 'home' },
@@ -74,7 +73,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       const response = await Login({ email, password });
       login(response.user, response.tokens);
       setIsLoginModalOpen(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Login error:', error);
       // Error will be handled by LoginModal component
       throw error; // Re-throw to let LoginModal handle it
@@ -95,7 +94,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       });
       login(response.user, response.tokens);
       setIsSignupModalOpen(false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Signup error:', error);
       // Error will be handled by SignupModal component
       throw error; // Re-throw to let SignupModal handle it

@@ -12,11 +12,13 @@ import { CreateRoomModal } from "@/partials/battleship/home/create-room-modal";
 import { LoginModal } from "@/partials/auth/login-modal";
 import { SignupModal } from "@/partials/auth/signup-modal";
 import { Login, Register } from "@/services/userService";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { extractErrorMessage } from "@/lib/utils";
 import { Bot, Globe, Users } from "lucide-react";
 import { toast } from "sonner";
 import { CreateRoomOptions } from "@/partials/battleship/home/create-room-modal";
 import { CreateRoomPayload } from "@/models/room";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { withLoading } from "@/utils/loadingUtils";
 import { useTranslations } from "next-intl";
 
@@ -24,6 +26,7 @@ const GAME_ID = "battleship";
 
 const BattleShipPage = () => {
     const router = useRouter();
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [loading, setLoading] = useState(false);
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
@@ -101,7 +104,7 @@ const BattleShipPage = () => {
                     router.push(`/battleship/${payload.room_id}`);
                 }
             });
-        } catch (err) {
+        } catch {
             alert(t("create_room_failed"));
         } finally {
             setLoading(false);
@@ -124,7 +127,7 @@ const BattleShipPage = () => {
             setIsLoginModalOpen(false);
             // Auto open create room modal after login
             setIsCreateModalOpen(true);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Login error:', error);
             // Error will be handled by LoginModal component
             throw error; // Re-throw to let LoginModal handle it
@@ -143,7 +146,7 @@ const BattleShipPage = () => {
             setIsSignupModalOpen(false);
             // Auto open create room modal after signup
             setIsCreateModalOpen(true);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Signup error:', error);
             // Error will be handled by SignupModal component
             throw error; // Re-throw to let SignupModal handle it

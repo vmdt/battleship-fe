@@ -3,7 +3,7 @@
 import HomeLayout from '@/layouts/default';
 import ShipBoard from '@/partials/battleship/shipboard/ship-board';
 import { BattleBoard } from '@/partials/battleship/battleboard/battle-board';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import type { Square } from '@/models/game';
 import type { Ship } from '@/models/game/ship';
 import { useSocketStore } from '@/stores/socketStore';
@@ -20,18 +20,19 @@ import { useUserStore } from '@/stores/userStore';
 import { LoginModal } from '@/partials/auth/login-modal';
 import { SignupModal } from '@/partials/auth/signup-modal';
 import { Login, Register } from '@/services/userService';
-import { toast } from 'sonner';
-import { extractErrorMessage } from '@/lib/utils';
 import { useTranslations } from "next-intl";
 
 export default function BattleShipPage() {
     const [phase, setPhase] = useState<'lobby' | 'setup' | 'battle'>('lobby');
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [myBoard, setMyBoard] = useState<Square[][] | null>(null);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [myShips, setMyShips] = useState<Ship[] | null>(null);
     const [loading, setLoading] = useState(true);
     const [showLogin, setShowLogin] = useState(false);
     const [showSignup, setShowSignup] = useState(false);
     const [authLoading, setAuthLoading] = useState(false);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const [hasJoinedRoom, setHasJoinedRoom] = useState(false);
     const [roomFull, setRoomFull] = useState(false);
     const [roomNotFound, setRoomNotFound] = useState(false);
@@ -58,12 +59,6 @@ export default function BattleShipPage() {
     };
 
     useEffect(() => {
-        // if (!getSocket('battleship')?.socket) {
-        //     connect('battleship', getMe(), {
-        //         room_id: roomId,
-        //         user_id: user?.id || null
-        //     });
-        // }
         connect('battleship', getMe(), {
             room_id: roomId,
             user_id: user?.id || null
@@ -80,10 +75,10 @@ export default function BattleShipPage() {
             console.log('User disconnected:', payload);
         });
 
-    }, [getSocket, connect]);
+    }, [getSocket, connect, getMe, roomId, user?.id]);
 
 
-    const checkAndJoinRoom = async () => {
+    const checkAndJoinRoom = useCallback(async () => {
         if (!roomId) return;
         try {
             setLoading(true);
@@ -141,14 +136,14 @@ export default function BattleShipPage() {
             else if (roomData.room.status === "battle") setPhase("battle");
 
         } catch (err) {
-            console.error(err);
+            console.error('Error checking and joining room:', err);
             setRoomNotFound(true);
         } finally {
             setLoading(false);
             setShowLogin(false);
             setShowSignup(false);
         }
-    };
+    }, [roomId, user?.id, user?.username, setPlayerOne, setPlayerTwo, setMe, setRoom, setRoomId, setRoomFull, setRoomNotFound, setLoading, setShowLogin, setShowSignup, setHasJoinedRoom, setPhase]);
 
     useEffect(() => {
         if (!isLogin) {
@@ -158,22 +153,22 @@ export default function BattleShipPage() {
             setShowSignup(false);
             checkAndJoinRoom();
         }
-    }, [isLogin, user, phase]);
+    }, [isLogin, user, phase, checkAndJoinRoom]);
 
     useEffect(() => {
         if (phase === 'battle') {
             const fetchBoard = async () => {
                 setBattleLoading(true);
                 try {
-                    const room = getRoomStore();
-                    const player = getMe();
-                    let playerId = player === 1 ? getPlayerOne()?.player_id : getPlayerTwo()?.player_id;
+                                    const room = getRoomStore();
+                const player = getMe();
+                const playerId = player === 1 ? getPlayerOne()?.player_id : getPlayerTwo()?.player_id;
                     if (!room?.id || !playerId) return;
                     const data = await getBattleShipBoard(room.id, playerId);
                     console.log('Fetched battle board data:', data);
                     setBattleBoardData(data);
                 } catch (err) {
-                    console.error('Failed to fetch battle board', err);
+                    console.error('Failed to fetch battle board:', err);
                 } finally {
                     setBattleLoading(false);
                 }
@@ -189,8 +184,8 @@ export default function BattleShipPage() {
             const response = await Login({ email, password });
             login(response.user, response.tokens);
             setShowLogin(false);
-        } catch (error: any) {
-            throw Error("Login failed"); 
+        } catch {
+            throw new Error("Login failed"); 
         } finally {
             setAuthLoading(false);
         }
@@ -207,7 +202,7 @@ export default function BattleShipPage() {
             });
             login(response.user, response.tokens);
             setShowSignup(false);
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Signup error:', error);
             // Error will be handled by SignupModal component
             throw error; // Re-throw to let SignupModal handle it
@@ -277,11 +272,11 @@ export default function BattleShipPage() {
                     {phase === 'lobby' && <Lobby setPhase={setPhase} />}
                     {phase === 'setup' && (
                         <ShipBoard
-                            onStart={(board: Square[][], ships: Ship[], callback?: Function) => {
+                            onStart={(board: Square[][], ships: Ship[], callback: () => void) => {
                                 setMyBoard(board);
                                 setMyShips(ships);
                                 handleStartGame(getMe());
-                                callback && callback();
+                                callback();
                             }}
                             setPhase={setPhase}
                         />

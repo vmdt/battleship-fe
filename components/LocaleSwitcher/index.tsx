@@ -14,7 +14,8 @@ interface LocaleSwitcherProps {
 export default function LocaleSwitcher({ collapsed }: LocaleSwitcherProps) {
   const t = useTranslations('LocaleSwitcher');
   const locale = useLocale();
-  const [isPending, startTransition] = useTransition();
+
+  const [, startTransition] = useTransition();
   
   function onChange(value: string) {
     const locale = value as Locale;
