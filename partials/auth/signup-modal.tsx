@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { useTranslations } from "next-intl";
 
 type SignupModalProps = {
   isOpen: boolean;
@@ -28,16 +29,17 @@ export function SignupModal({
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoadingInternal, setIsLoadingInternal] = useState(false);
+  const t = useTranslations("Auth");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!username.trim() || !email.trim() || !password.trim()) {
-      alert("Vui lòng nhập đầy đủ thông tin");
+      alert(t("please_fill_all"));
       return;
     }
     
     if (password.length < 6) {
-      alert("Mật khẩu phải có ít nhất 6 ký tự");
+      alert(t("password_min_length"));
       return;
     }
     
@@ -58,19 +60,19 @@ export function SignupModal({
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Đăng ký"
+      title={t("signup")}
       closeOnBackdropClick={false}
     >
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Username Input */}
         <div className="space-y-2">
-          <Label htmlFor="username">Tên người dùng *</Label>
+          <Label htmlFor="username">{t("username_required")}</Label>
           <div className="relative">
             <User className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
               id="username"
               type="text"
-              placeholder="Nhập tên người dùng"
+              placeholder={t("username_placeholder")}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="pl-10"
@@ -82,13 +84,13 @@ export function SignupModal({
 
         {/* Email Input */}
         <div className="space-y-2">
-          <Label htmlFor="email">Email *</Label>
+          <Label htmlFor="email">{t("email_required")}</Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
               id="email"
               type="email"
-              placeholder="Nhập email của bạn"
+              placeholder={t("email_placeholder")}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="pl-10"
@@ -100,13 +102,13 @@ export function SignupModal({
 
         {/* Password Input */}
         <div className="space-y-2">
-          <Label htmlFor="password">Mật khẩu *</Label>
+          <Label htmlFor="password">{t("password_required")}</Label>
           <div className="relative">
             <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
             <Input
               id="password"
               type={showPassword ? "text" : "password"}
-              placeholder="Nhập mật khẩu (ít nhất 6 ký tự)"
+              placeholder={t("password_min_placeholder")}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="pl-10 pr-10"
@@ -130,7 +132,7 @@ export function SignupModal({
           className="w-full" 
           disabled={isFormLoading}
         >
-          {isFormLoading ? "Đang đăng ký..." : "Đăng ký"}
+          {isFormLoading ? t("signing_up") : t("signup_button")}
         </Button>
 
         {/* Divider */}
@@ -139,7 +141,7 @@ export function SignupModal({
             <span className="w-full border-t" />
           </div>
           <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-white dark:bg-gray-800 px-2 text-gray-500">Hoặc</span>
+            <span className="bg-white dark:bg-gray-800 px-2 text-gray-500">{t("or")}</span>
           </div>
         </div>
 
@@ -158,7 +160,7 @@ export function SignupModal({
               <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
               <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-            Tiếp tục với Google
+            {t("continue_with_google")}
           </Button>
         )}
 
@@ -168,7 +170,7 @@ export function SignupModal({
           variant="outline"
           onClick={() => {
             // TODO: Implement Google OAuth
-            alert("Tính năng đăng ký Google sẽ được cập nhật sau");
+            alert(t("google_signup_coming_soon"));
           }}
           className="w-full"
           disabled={isFormLoading}
@@ -179,13 +181,13 @@ export function SignupModal({
             <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
             <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
           </svg>
-          Continue with Google
+          {t("continue_with_google")}
         </Button>
 
         {/* Login Link */}
         <div className="text-center">
           <span className="text-sm text-gray-600 dark:text-gray-400">
-            Đã có tài khoản?{" "}
+            {t("have_account")}{" "}
           </span>
           <button
             type="button"
@@ -193,7 +195,7 @@ export function SignupModal({
             className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 font-medium"
             disabled={isFormLoading}
           >
-            Đăng nhập ngay
+            {t("login_now")}
           </button>
         </div>
       </form>

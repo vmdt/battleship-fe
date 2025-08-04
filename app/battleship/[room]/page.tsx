@@ -22,6 +22,7 @@ import { SignupModal } from '@/partials/auth/signup-modal';
 import { Login, Register } from '@/services/userService';
 import { toast } from 'sonner';
 import { extractErrorMessage } from '@/lib/utils';
+import { useTranslations } from "next-intl";
 
 export default function BattleShipPage() {
     const [phase, setPhase] = useState<'lobby' | 'setup' | 'battle'>('lobby');
@@ -43,6 +44,7 @@ export default function BattleShipPage() {
     const { isLogin, user, login } = useUserStore();
     const params = useParams();
     const roomId = params.room as string;
+    const t = useTranslations("Loading");
 
     // Xử lý chuyển đổi giữa login và signup
     const handleSwitchToSignup = () => {
@@ -254,20 +256,20 @@ export default function BattleShipPage() {
             {/* Chỉ hiển thị nội dung game khi đã login hoặc đang loading */}
             {loading ? (
                 <div className="flex items-center justify-center min-h-screen">
-                    <div className="text-lg">Đang tải...</div>
+                    <div className="text-lg">{t('loading')}</div>
                 </div>
             ) : roomNotFound ? (
                 <div className="flex items-center justify-center min-h-screen">
                     <div className="text-center">
-                        <h2 className="text-2xl font-bold mb-4">Không tìm thấy phòng</h2>
-                        <p className="text-gray-600">Phòng này không tồn tại hoặc đã bị xóa.</p>
+                        <h2 className="text-2xl font-bold mb-4">{t('room_not_found')}</h2>
+                        <p className="text-gray-600">{t('room_not_found_description')}</p>
                     </div>
                 </div>
             ) : roomFull ? (
                 <div className="flex items-center justify-center min-h-screen">
                     <div className="text-center">
-                        <h2 className="text-2xl font-bold mb-4">Phòng đã đầy</h2>
-                        <p className="text-gray-600">Phòng này đã có đủ 2 người chơi.</p>
+                        <h2 className="text-2xl font-bold mb-4">{t('room_full')}</h2>
+                        <p className="text-gray-600">{t('room_full_description')}</p>
                     </div>
                 </div>
             ) : (
@@ -288,7 +290,7 @@ export default function BattleShipPage() {
                         <>
                             {battleLoading || !battleBoardData ? (
                     <div className="flex items-center justify-center min-h-screen">
-                        <div className="text-lg">Đang tải dữ liệu trận đấu...</div>
+                        <div className="text-lg">{t('loading_battle_data')}</div>
                     </div>
                             ) : (
                                 (() => {
