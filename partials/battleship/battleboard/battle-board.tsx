@@ -33,6 +33,7 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
     const [gameStatus, setGameStatus] = useState("Your turn");
     const [opponentShotAt, setOpponentShotAt] = useState<Date | undefined>(undefined);
     const [timeoutHandled, setTimeoutHandled] = useState(false);
+    const [isAttacking, setIsAttacking] = useState(false);
     const { getRoom, getPlayerOne, getPlayerTwo, getMe, setRoom } = useRoomStore();
     const { getSocket } = useSocketStore();
     const t = useTranslations("BattleBoard");
@@ -279,25 +280,33 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
     }, [getSocket, getMe, getPlayerOne, getPlayerTwo]);
 
     const handleAttack = async (x: number, y: number) => {
-        // Chỉ cho phép bắn nếu là lượt của mình và game chưa kết thúc
-        if (!isMyTurn || gameStatus === t('game_ended')) return;
+        // Chỉ cho phép bắn nếu là lượt của mình và game chưa kết thúc và không đang attack
+        if (!isMyTurn || gameStatus === t('game_ended') || isAttacking) return;
 
         const targetSquare = opponentBoard[x][y];
         if (targetSquare.status === 'hit' || targetSquare.status === 'miss') {
             return; // Already attacked
         }
 
-        const result = await attackBattleShip(getRoom()!.id, getMe() === 1 ? getPlayerOne()!.player_id : getPlayerTwo()!.player_id, { x, y });
-        setOpponentBoard(prev => {
-            const newBoard = prev.map(row => row.map(sq => ({ ...sq })));
-            newBoard[x][y].status = result ? 'hit' : 'miss';
-            return newBoard;
-        });
-        // Đợi một chút rồi mới chuyển lượt
-        setTimeout(() => {
-            setIsMyTurn(false);
-            setGameStatus(t('opponent_turn'));
-        }, 600);
+        setIsAttacking(true);
+        try {
+            const result = await attackBattleShip(getRoom()!.id, getMe() === 1 ? getPlayerOne()!.player_id : getPlayerTwo()!.player_id, { x, y });
+            setOpponentBoard(prev => {
+                const newBoard = prev.map(row => row.map(sq => ({ ...sq })));
+                newBoard[x][y].status = result ? 'hit' : 'miss';
+                return newBoard;
+            });
+            // Đợi một chút rồi mới chuyển lượt
+            setTimeout(() => {
+                setIsMyTurn(false);
+                setGameStatus(t('opponent_turn'));
+            }, 600);
+        } catch (error) {
+            console.error('Attack failed:', error);
+            toast.error(t('attack_failed'));
+        } finally {
+            setIsAttacking(false);
+        }
     };
 
     const renderBoard = (
@@ -364,7 +373,7 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
     const mainBoard = isMyTurn ? opponentBoard : myBoard;
     const mainBoardTitle = isMyTurn ? t('opponent_board') : t('your_board');
 
-    const mainBoardClickHandler = isMyTurn && !opponentDisconnected && gameStatus !== t('game_ended') ? handleAttack : () => {};
+    const mainBoardClickHandler = isMyTurn && !opponentDisconnected && gameStatus !== t('game_ended') && !isAttacking ? handleAttack : () => {};
 
     const secondaryBoard = isMyTurn ? myBoard : opponentBoard;
     const secondaryBoardTitle = isMyTurn ? t('your_board') : t('opponent_board');
@@ -374,7 +383,17 @@ export function BattleBoard({ myBoardInit, myShipsInit, opponentBoardInit }: { m
             <div className="w-full max-w-6xl mx-auto flex flex-2/3 justify-center md:justify-start items-start md:pl-8 mt-8">
                 <div className="flex relative items-center justify-center w-full flex-col">
                     <h2 className="text-xl font-semibold mb-2 text-center">{mainBoardTitle}</h2>
-                    {renderBoard(mainBoard, mainBoardClickHandler, isMobile, !isMobile, isMyTurn)}
+                    <div className="relative">
+                        {renderBoard(mainBoard, mainBoardClickHandler, isMobile, !isMobile, isMyTurn)}
+                        {isAttacking && (
+                            <div className="absolute inset-0 flex items-center justify-center bg-black/20 rounded-lg z-10">
+                                <div className="flex items-center gap-2 bg-white/90 dark:bg-gray-800/90 px-4 py-2 rounded-lg shadow-lg">
+                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                                    <span className="text-sm font-medium text-gray-700 dark:text-gray-200">{t('attacking')}</span>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                     {/* {opponentDisconnected && isMyTurn &&  (
                         <div className="absolute inset-0 flex items-center justify-center backdrop-invert backdrop-opacity-30 z-100">
                             <span className="text-red-500 text-2xl font-bold">Disconnected</span>

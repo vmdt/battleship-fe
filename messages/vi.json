@@ -80,12 +80,14 @@
         "leaderboard": "Bảng xếp hạng",
         "points": "điểm",
         "feature_coming_soon": "Tính năng sẽ được cập nhật sau",
-        "create_room_failed": "Tạo phòng thất bại"
+        "create_room_failed": "Tạo phòng thất bại",
+        "create_room_timeout": "Tạo phòng thất bại: Không nhận được phản hồi từ server"
     },
     "CreateRoomModal": {
         "title": "Tạo phòng mới",
         "cancel": "Hủy",
         "create_room": "Tạo phòng",
+        "creating_room": "Đang tạo phòng...",
         "options": "Tùy chọn",
         "time_per_turn": "Thời gian mỗi lượt",
         "time_per_turn_placeholder": "Chọn thời gian",
@@ -163,7 +165,9 @@
         "congratulations_win": "Chúc mừng! Bạn đã thắng cuộc!",
         "win_description": "Bạn đã đánh bại đối thủ trong trận chiến này.",
         "you_lost": "Bạn đã thua cuộc!",
-        "lose_description": "Đối thủ đã đánh bại bạn trong trận chiến này."
+        "lose_description": "Đối thủ đã đánh bại bạn trong trận chiến này.",
+        "attacking": "Đang tấn công...",
+        "attack_failed": "Tấn công thất bại. Vui lòng thử lại."
     },
     "InviteQR": {
         "copy_link": "Sao chép liên kết",

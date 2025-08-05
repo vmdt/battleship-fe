@@ -19,9 +19,10 @@ type CreateRoomModalProps = {
   isOpen: boolean;
   onClose: () => void;
   onCreate: (options: CreateRoomOptions, userId: string) => void;
+  isLoading?: boolean;
 };
 
-export function CreateRoomModal({ isOpen, onClose, onCreate }: CreateRoomModalProps) {
+export function CreateRoomModal({ isOpen, onClose, onCreate, isLoading = false }: CreateRoomModalProps) {
   const [timePerTurn, setTimePerTurn] = useState("30");
   const [whoPlayFirst, setWhoPlayFirst] = useState("random");
   const [placingTime, setPlacingTime] = useState("120");
@@ -47,11 +48,11 @@ export function CreateRoomModal({ isOpen, onClose, onCreate }: CreateRoomModalPr
       contentClassName="border-2"
       footer={
         <>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={isLoading}>
             {t("cancel")}
           </Button>
-          <Button onClick={handleCreate}>
-            {t("create_room")}
+          <Button onClick={handleCreate} disabled={isLoading}>
+            {isLoading ? t("creating_room") : t("create_room")}
           </Button>
         </>
       }
@@ -63,6 +64,12 @@ export function CreateRoomModal({ isOpen, onClose, onCreate }: CreateRoomModalPr
               <CardTitle className="text-lg font-medium text-gray-900 dark:text-white">{t("options")}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
+              {isLoading && (
+                <div className="flex items-center justify-center py-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                  <span className="ml-2 text-sm text-gray-600 dark:text-gray-400">{t("creating_room")}</span>
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="timePerTurn">{t("time_per_turn")}</Label>
                 <Select value={timePerTurn} onValueChange={setTimePerTurn}>

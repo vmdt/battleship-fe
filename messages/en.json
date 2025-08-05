@@ -80,12 +80,14 @@
         "leaderboard": "Leaderboard",
         "points": "points",
         "feature_coming_soon": "Feature will be updated later",
-        "create_room_failed": "Create room failed"
+        "create_room_failed": "Create room failed",
+        "create_room_timeout": "Create room failed: No response from server"
     },
     "CreateRoomModal": {
         "title": "Create New Room",
         "cancel": "Cancel",
         "create_room": "Create Room",
+        "creating_room": "Creating Room...",
         "options": "Options",
         "time_per_turn": "Time per turn",
         "time_per_turn_placeholder": "Select time",
@@ -163,7 +165,9 @@
         "congratulations_win": "Congratulations! You won!",
         "win_description": "You defeated your opponent in this battle.",
         "you_lost": "You lost!",
-        "lose_description": "Your opponent defeated you in this battle."
+        "lose_description": "Your opponent defeated you in this battle.",
+        "attacking": "Attacking...",
+        "attack_failed": "Attack failed. Please try again."
     },
     "InviteQR": {
         "copy_link": "Copy link",
