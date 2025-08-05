@@ -9,7 +9,7 @@
 
     const handleCopy = () => {
         if (inputRef.current) {
-        inputRef.current.select();
+        // inputRef.current.select();
         document.execCommand('copy');
         setCopied(true);
         setTimeout(() => setCopied(false), 1200);

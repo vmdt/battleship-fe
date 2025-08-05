@@ -95,6 +95,7 @@ const ShipBoard = ({ onStart, setPhase }: ShipBoardProps) => {
     const { getSocket } = useSocketStore();
     const [waitingOther, setWaitingOther] = useState(false);
     const [timeoutHandled, setTimeoutHandled] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
 
     // Get room options for countdown timer
     const room = getRoom();
@@ -168,6 +169,14 @@ const ShipBoard = ({ onStart, setPhase }: ShipBoardProps) => {
         window.addEventListener('keydown', handleKeyPress);
         return () => window.removeEventListener('keydown', handleKeyPress);
     }, [hoverPosition]);
+
+    // Detect mobile screen size
+    useEffect(() => {
+        const handleResize = () => setIsMobile(window.innerWidth < 768);
+        handleResize();
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
 
     useEffect(() => {
         const socket = getSocket('battleship')?.socket as Socket;
@@ -398,7 +407,7 @@ const ShipBoard = ({ onStart, setPhase }: ShipBoardProps) => {
     return (
         <div className="flex flex-col md:flex-row w-full h-full">
             {/* Cột trái: Ship board */}
-            <div className="flex-1 flex flex-col items-center justify-center">
+            <div className={`flex-1 flex flex-col items-center justify-center ${isMobile ? 'px-2' : ''}`}>
                 <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-4">
                     {t('place_your_ships')}
                 </h2>
@@ -515,9 +524,13 @@ const ShipBoard = ({ onStart, setPhase }: ShipBoardProps) => {
                 </button>
             </div>
             {/* Cột phải: Chatbox */}
-            <div className="w-full max-w-md flex flex-col items-center justify-start mt-8">
-                <Chat header={renderHeaderForChat()} />
-            </div>
+            {!isMobile ? (
+                <div className="w-full max-w-md flex flex-col items-center justify-start mt-8">
+                    <Chat header={renderHeaderForChat()} isMobile={isMobile} />
+                </div>
+            ) : (
+                <Chat header={renderHeaderForChat()} isMobile={isMobile} />
+            )}
         </div>
     );
 };
