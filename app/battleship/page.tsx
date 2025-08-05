@@ -31,6 +31,7 @@ const BattleShipPage = () => {
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     const [isLoginModalOpen, setIsLoginModalOpen] = useState(false);
     const [isSignupModalOpen, setIsSignupModalOpen] = useState(false);
+    const [isCreatingRoom, setIsCreatingRoom] = useState(false);
     const { connect, getSocket } = useSocketStore();
     const { setRoom, setRoomId, setPlayerOne, setPlayerTwo, getMe, setMe } = useRoomStore();
     const { isLogin, login } = useUserStore();
@@ -64,7 +65,9 @@ const BattleShipPage = () => {
     // Sửa lại handleCreateRoom để nhận options
     const handleCreateRoom = async (options: CreateRoomOptions, userId: string) => {
         setIsCreateNewRoom(true);
-        setLoading(true);
+        setIsCreatingRoom(true);
+        let timeoutId: NodeJS.Timeout | undefined;
+        
         try {
             // reset room
             setRoomId(null);
@@ -92,23 +95,43 @@ const BattleShipPage = () => {
             const socket = getSocket(GAME_ID)?.socket;
             if (!socket) {
                 alert("Socket connection failed");
+                setIsCreatingRoom(false);
                 return;
             }
 
-            socket.on("room:joined", (payload) => {
+            // Lắng nghe sự kiện room:joined
+            const handleRoomJoined = (payload: any) => {
                 if (payload?.room_id) {
                     setRoom(data?.room as RoomModel);
                     setPlayerOne(data as RoomPlayerModel);
                     setRoomId(payload.room_id);
                     setMe(1);
+                    setIsCreatingRoom(false);
+                    setIsCreateModalOpen(false);
                     router.push(`/battleship/${payload.room_id}`);
+                    
+                    // Cleanup listener và timeout
+                    socket.off("room:joined", handleRoomJoined);
+                    if (timeoutId) {
+                        clearTimeout(timeoutId);
+                    }
                 }
-            });
+            };
+
+            socket.on("room:joined", handleRoomJoined);
+
+            // Timeout sau 10 giây nếu không nhận được sự kiện
+            timeoutId = setTimeout(() => {
+                socket.off("room:joined", handleRoomJoined);
+                setIsCreatingRoom(false);
+                toast.error(t("create_room_timeout"));
+            }, 10000);
         } catch {
-            alert(t("create_room_failed"));
-        } finally {
-            setLoading(false);
-            setIsCreateModalOpen(false);
+            toast.error(t("create_room_failed"));
+            setIsCreatingRoom(false);
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
         }
     };
 
@@ -279,8 +302,13 @@ const BattleShipPage = () => {
             {/* Create Room Modal */}
             <CreateRoomModal
                 isOpen={isCreateModalOpen}
-                onClose={() => setIsCreateModalOpen(false)}
+                onClose={() => {
+                    if (!isCreatingRoom) {
+                        setIsCreateModalOpen(false);
+                    }
+                }}
                 onCreate={(options, userId) => handleCreateRoom(options, userId)}
+                isLoading={isCreatingRoom}
             />
 
             {/* Login Modal */}
