@@ -1,4 +1,5 @@
-import React, { useRef, useEffect, ReactNode } from 'react';
+import React, { useRef, useEffect, ReactNode, useState } from 'react';
+import { MessageCircle, X } from 'lucide-react';
 
 interface Message {
   id: number;
@@ -31,67 +32,171 @@ const mockMessages: Message[] = [
   { id: 20, userId: 'opponent', avatar: '/assets/images/cover-image.png', content: 'Ok!', isMe: false },
 ];
 
-export function Chat({ header }: { header?: ReactNode }) {
+interface ChatProps {
+  header?: ReactNode;
+  isMobile?: boolean;
+}
+
+export function Chat({ header, isMobile = false }: ChatProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isOpen, setIsOpen] = useState(false); // Always start closed, will be controlled by isMobile
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [mockMessages.length]);
+    const container = messagesEndRef.current;
+    if (container && isOpen) {
+      container.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [isOpen]);
 
+  // Desktop version (always visible)
+  if (!isMobile) {
+    return (
+      <div className="flex flex-col h-[600px] w-full max-w-md border rounded-xl bg-white dark:bg-gray-900 shadow-lg">
+        {/* Header */}
+        {header && (
+          <div className="rounded-t-xl">
+            {header}
+          </div>
+        )}
+        {/* Chat messages */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+          {mockMessages.map((msg) => (
+            <div
+              key={msg.id}
+              className={`flex items-end ${msg.isMe ? 'justify-start' : 'justify-end'}`}
+            >
+              {msg.isMe && (
+                <img
+                  src={msg.avatar}
+                  alt="avatar"
+                  className="w-10 h-10 rounded-full border-2 mr-2"
+                  style={{ borderColor: '#2563eb' }} // blue-600
+                />
+              )}
+              <div
+                className={`px-4 py-2 rounded-lg shadow text-sm max-w-[70%] ${
+                  msg.isMe
+                    ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                    : 'bg-red-100 text-red-900 border border-red-200'
+                }`}
+              >
+                {msg.content}
+              </div>
+              {!msg.isMe && (
+                <img
+                  src={msg.avatar}
+                  alt="avatar"
+                  className="w-10 h-10 rounded-full border-2 ml-2"
+                  style={{ borderColor: '#ef4444' }} // red-500
+                />
+              )}
+            </div>
+          ))}
+          <div ref={messagesEndRef} />
+        </div>
+        {/* Input panel (placeholder) */}
+        <div className="p-2 border-t bg-gray-50 dark:bg-gray-800 flex items-center">
+          <input
+            type="text"
+            className="flex-1 rounded-lg border px-3 py-2 mr-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-700 dark:text-white"
+            placeholder="Nhập tin nhắn..."
+            disabled
+          />
+          <button className="bg-blue-600 text-white px-4 py-2 rounded-lg opacity-60 cursor-not-allowed" disabled>Gửi</button>
+        </div>
+      </div>
+    );
+  }
+
+  // Mobile version (floating icon + popup)
   return (
-    <div className="flex flex-col h-[600px] w-full max-w-md border rounded-xl bg-white dark:bg-gray-900 shadow-lg">
-      {/* Header */}
-      {header && (
-        <div className="rounded-t-xl">
-          {header}
+    <>
+      {/* Floating chat icon - always visible on mobile */}
+      <div className="fixed bottom-4 right-4 z-50">
+        <button
+          onClick={() => setIsOpen(!isOpen)}
+          className="w-14 h-14 bg-blue-600 hover:bg-blue-700 text-white rounded-full shadow-lg flex items-center justify-center transition-all duration-200 hover:scale-110"
+        >
+          <MessageCircle size={24} />
+        </button>
+      </div>
+
+      {/* Chat popup */}
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-end justify-end p-4">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/20"
+            onClick={() => setIsOpen(false)}
+          />
+          
+          {/* Chat container */}
+          <div className="relative w-full max-w-sm h-[500px] bg-white dark:bg-gray-900 rounded-t-xl shadow-2xl border border-gray-200 dark:border-gray-700">
+            {/* Header with close button */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 rounded-t-xl bg-gray-50 dark:bg-gray-800">
+              <h3 className="font-semibold text-gray-800 dark:text-white">Chat</h3>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
+              >
+                <X size={20} className="text-gray-600 dark:text-gray-400" />
+              </button>
+            </div>
+
+            {/* Chat messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3 h-[350px]">
+              {mockMessages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex items-end ${msg.isMe ? 'justify-start' : 'justify-end'}`}
+                >
+                  {msg.isMe && (
+                    <img
+                      src={msg.avatar}
+                      alt="avatar"
+                      className="w-8 h-8 rounded-full border-2 mr-2"
+                      style={{ borderColor: '#2563eb' }}
+                    />
+                  )}
+                  <div
+                    className={`px-3 py-2 rounded-lg shadow text-sm max-w-[70%] ${
+                      msg.isMe
+                        ? 'bg-blue-100 text-blue-900 border border-blue-200'
+                        : 'bg-red-100 text-red-900 border border-red-200'
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+                  {!msg.isMe && (
+                    <img
+                      src={msg.avatar}
+                      alt="avatar"
+                      className="w-8 h-8 rounded-full border-2 ml-2"
+                      style={{ borderColor: '#ef4444' }}
+                    />
+                  )}
+                </div>
+              ))}
+              <div ref={messagesEndRef} />
+            </div>
+
+            {/* Input panel */}
+            <div className="p-3 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
+              <div className="flex items-center">
+                <input
+                  type="text"
+                  className="flex-1 rounded-lg border px-3 py-2 mr-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-700 dark:text-white text-sm"
+                  placeholder="Nhập tin nhắn..."
+                  disabled
+                />
+                <button className="bg-blue-600 text-white px-3 py-2 rounded-lg opacity-60 cursor-not-allowed text-sm" disabled>
+                  Gửi
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
-      {/* Chat messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {mockMessages.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex items-end ${msg.isMe ? 'justify-start' : 'justify-end'}`}
-          >
-            {msg.isMe && (
-              <img
-                src={msg.avatar}
-                alt="avatar"
-                className="w-10 h-10 rounded-full border-2 mr-2"
-                style={{ borderColor: '#2563eb' }} // blue-600
-              />
-            )}
-            <div
-              className={`px-4 py-2 rounded-lg shadow text-sm max-w-[70%] ${
-                msg.isMe
-                  ? 'bg-blue-100 text-blue-900 border border-blue-200'
-                  : 'bg-red-100 text-red-900 border border-red-200'
-              }`}
-            >
-              {msg.content}
-            </div>
-            {!msg.isMe && (
-              <img
-                src={msg.avatar}
-                alt="avatar"
-                className="w-10 h-10 rounded-full border-2 ml-2"
-                style={{ borderColor: '#ef4444' }} // red-500
-              />
-            )}
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-      {/* Input panel (placeholder) */}
-      <div className="p-2 border-t bg-gray-50 dark:bg-gray-800 flex items-center">
-        <input
-          type="text"
-          className="flex-1 rounded-lg border px-3 py-2 mr-2 focus:outline-none focus:ring-2 focus:ring-blue-400 dark:bg-gray-700 dark:text-white"
-          placeholder="Nhập tin nhắn..."
-          disabled
-        />
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg opacity-60 cursor-not-allowed" disabled>Gửi</button>
-      </div>
-    </div>
+    </>
   );
 }
