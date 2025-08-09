@@ -3,6 +3,8 @@
 import { NextIntlClientProvider } from 'next-intl'
 import { ThemeProvider } from '@/components/ThemeProvider'
 import { Toaster } from '@/components/ui/sonner'
+import { GoogleOAuthProvider } from '@react-oauth/google'
+import { getGoogleClientId } from '@/services/googleAuthService'
 
 export function Providers({
   children,
@@ -16,7 +18,8 @@ export function Providers({
 
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
-              <ThemeProvider
+      <GoogleOAuthProvider clientId={getGoogleClientId()}>
+        <ThemeProvider
           attribute="class"
           defaultTheme="system"
           enableSystem
@@ -25,6 +28,7 @@ export function Providers({
           {children}
         </ThemeProvider>
         <Toaster />
+      </GoogleOAuthProvider>
     </NextIntlClientProvider>
   )
 } 

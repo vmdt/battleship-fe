@@ -69,7 +69,9 @@
         "password_min_length": "Mật khẩu phải có ít nhất 6 ký tự",
         "forgot_password_coming_soon": "Tính năng quên mật khẩu sẽ được cập nhật sau",
         "google_login_coming_soon": "Tính năng đăng nhập Google sẽ được cập nhật sau",
-        "google_signup_coming_soon": "Tính năng đăng ký Google sẽ được cập nhật sau"
+        "google_signup_coming_soon": "Tính năng đăng ký Google sẽ được cập nhật sau",
+        "google_login_failed": "Đăng nhập Google thất bại. Vui lòng thử lại.",
+        "google_signup_failed": "Đăng ký Google thất bại. Vui lòng thử lại."
     },
     "BattleshipHome": {
         "welcome_back": "Chào mừng trở lại, Người chơi!",

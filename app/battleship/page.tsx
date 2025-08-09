@@ -176,6 +176,38 @@ const BattleShipPage = () => {
         }
     };
 
+    const handleGoogleLogin = async (authResponse?: any) => {
+        try {
+            // If authResponse is provided, use it to login
+            if (authResponse) {
+                login(authResponse.user, authResponse.tokens);
+            }
+            setIsLoginModalOpen(false);
+            // Auto open create room modal after Google login
+            setIsCreateModalOpen(true);
+        } catch (error: unknown) {
+            console.error('Google login error:', error);
+            // Error will be handled by LoginModal component
+            throw error;
+        }
+    };
+
+    const handleGoogleSignup = async (authResponse?: any) => {
+        try {
+            // If authResponse is provided, use it to login
+            if (authResponse) {
+                login(authResponse.user, authResponse.tokens);
+            }
+            setIsSignupModalOpen(false);
+            // Auto open create room modal after Google signup
+            setIsCreateModalOpen(true);
+        } catch (error: unknown) {
+            console.error('Google signup error:', error);
+            // Error will be handled by SignupModal component
+            throw error;
+        }
+    };
+
     const handlePlayWithAI = () => {
         toast.info(t("feature_coming_soon"));
     }
@@ -316,6 +348,7 @@ const BattleShipPage = () => {
                 isOpen={isLoginModalOpen}
                 onClose={() => setIsLoginModalOpen(false)}
                 onLogin={handleLogin}
+                onGoogleLogin={handleGoogleLogin}
                 onSignupClick={() => {
                     setIsLoginModalOpen(false);
                     setIsSignupModalOpen(true);
@@ -331,6 +364,7 @@ const BattleShipPage = () => {
                     setIsLoginModalOpen(true);
                 }}
                 onSignup={handleSignup}
+                onGoogleSignup={handleGoogleSignup}
             />
 
         </HomeLayout>
