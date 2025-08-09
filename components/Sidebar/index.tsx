@@ -101,6 +101,34 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     }
   };
 
+  const handleGoogleLogin = async (authResponse?: any) => {
+    try {
+      // If authResponse is provided, use it to login
+      if (authResponse) {
+        login(authResponse.user, authResponse.tokens);
+      }
+      setIsLoginModalOpen(false);
+    } catch (error: unknown) {
+      console.error('Google login error:', error);
+      // Error will be handled by LoginModal component
+      throw error;
+    }
+  };
+
+  const handleGoogleSignup = async (authResponse?: any) => {
+    try {
+      // If authResponse is provided, use it to login
+      if (authResponse) {
+        login(authResponse.user, authResponse.tokens);
+      }
+      setIsSignupModalOpen(false);
+    } catch (error: unknown) {
+      console.error('Google signup error:', error);
+      // Error will be handled by SignupModal component
+      throw error;
+    }
+  };
+
   const handleSignupClick = () => {
     setIsLoginModalOpen(false);
     setIsSignupModalOpen(true);
@@ -297,6 +325,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         isOpen={isLoginModalOpen}
         onClose={() => setIsLoginModalOpen(false)}
         onLogin={handleLogin}
+        onGoogleLogin={handleGoogleLogin}
         onSignupClick={handleSignupClick}
       />
 
@@ -306,6 +335,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
         onClose={() => setIsSignupModalOpen(false)}
         onLoginClick={handleLoginClick}
         onSignup={handleSignup}
+        onGoogleSignup={handleGoogleSignup}
       />
     </>
   )
