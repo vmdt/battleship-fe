@@ -7,12 +7,24 @@
     const [copied, setCopied] = useState(false);
     const t = useTranslations("InviteQR");
 
-    const handleCopy = () => {
+    const handleCopy = async () => {
         if (inputRef.current) {
-        // inputRef.current.select();
-        document.execCommand('copy');
-        setCopied(true);
-        setTimeout(() => setCopied(false), 1200);
+            try {
+                // Sử dụng Clipboard API mới
+                await navigator.clipboard.writeText(link);
+                setCopied(true);
+                setTimeout(() => setCopied(false), 1200);
+            } catch (err) {
+                // Fallback cho các trình duyệt cũ
+                inputRef.current.select();
+                try {
+                    document.execCommand('copy');
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 1200);
+                } catch (fallbackErr) {
+                    console.error('Copy failed:', fallbackErr);
+                }
+            }
         }
     };
 
