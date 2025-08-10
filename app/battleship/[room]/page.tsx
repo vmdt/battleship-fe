@@ -58,6 +58,19 @@ export default function BattleShipPage() {
         setShowLogin(true);
     };
 
+    const handleGoogleLogin = async (authResponse: any) => {
+        try {
+            if (authResponse) {
+                login(authResponse.user, authResponse.tokens);
+            }
+            setShowLogin(false);
+            setShowSignup(false);
+        } catch (error) {
+            console.error("Google login failed:", error);
+            throw new Error("Google login failed");
+        }
+    }
+
     useEffect(() => {
         connect('battleship', getMe(), {
             room_id: roomId,
@@ -233,6 +246,7 @@ export default function BattleShipPage() {
                 }}
                 onSignupClick={handleSwitchToSignup}
                 onLogin={handleLogin}
+                onGoogleLogin={handleGoogleLogin}
                 isLoading={authLoading}
             />
             
@@ -245,6 +259,7 @@ export default function BattleShipPage() {
                 }}
                 onLoginClick={handleSwitchToLogin}
                 onSignup={handleSignup}
+                onGoogleSignup={handleGoogleLogin}
                 isLoading={authLoading}
             />
             
