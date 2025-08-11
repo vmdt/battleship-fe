@@ -3,6 +3,7 @@ export interface PlayerModel {
     id: string;
     name: string;
     user_id?: string;
+    avatar?: string;
     created_at: Date;
     updated_at: Date;
 }
