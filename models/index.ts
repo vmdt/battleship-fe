@@ -3,3 +3,4 @@ export * from './board';
 export * from './room';
 export * from './player';
 export * from './user';
+export * from './chat';
